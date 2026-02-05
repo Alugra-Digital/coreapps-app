@@ -1,0 +1,416 @@
+import React from "react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import {
+  Ticket,
+  Contact,
+  Users2,
+  FileText,
+  Link as LinkIcon,
+  ShieldCheck,
+  Star,
+  BarChart3,
+  MessageSquare,
+  LifeBuoy,
+  Settings,
+  Search,
+  ChevronDown,
+  LayoutGrid,
+  PanelLeft,
+  ChevronUp,
+  LayoutDashboard,
+  Wallet,
+  Package,
+  FileBarChart,
+  LogOut,
+  TrendingUp,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+export function Sidebar({ className }: SidebarProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return (
+    <div
+      className={cn(
+        "flex h-full w-[280px] flex-col bg-sidebar dark:bg-[#111111] border-r border-sidebar-border p-4 gap-4 transition-colors",
+        className,
+      )}
+    >
+      {/* Logo Header */}
+      <div className="flex items-center gap-3 px-2 py-2">
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+          <LayoutGrid className="h-5 w-5" />
+        </div>
+        <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-foreground">
+          Rubbick
+        </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-auto h-8 w-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5"
+        >
+          <PanelLeft className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="h-px w-full bg-linear-to-r from-transparent via-sidebar-border to-transparent opacity-50" />
+
+      {/* Scrollable Area */}
+      <div className="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar pr-1 -mr-1">
+        {/* Search */}
+        <div className="relative px-1 mt-2">
+          <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            placeholder="Search anything"
+            className="pl-10 h-10 bg-white dark:bg-card border border-slate-200 dark:border-white/5 rounded-sm shadow-sm focus-visible:ring-1 focus-visible:ring-sidebar-primary text-sm placeholder:text-slate-400 dark:text-foreground outline-none"
+          />
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-[10px] text-slate-400 font-semibold px-1">
+            <span className="font-sans text-xs">⌘</span>
+            <span>K</span>
+          </div>
+        </div>
+
+        {/* Main Navigation */}
+        <div className="flex flex-col gap-1">
+          <div className="px-3 mb-2">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400/80">
+              Main Navigation
+            </h2>
+          </div>
+
+          <SidebarItem
+            to="/dashboard"
+            icon={<LayoutDashboard className="h-[18px] w-[18px]" />}
+            label="Dashboard"
+            active={location.pathname === "/dashboard"}
+          />
+
+          <SidebarItem
+            icon={<Wallet className="h-[18px] w-[18px]" />}
+            label="Finance"
+            hasChevron
+            active={location.pathname.startsWith("/finance")}
+          >
+            <SidebarSubItem
+              to="/finance/accounting"
+              label="Accounting"
+              isLast={false}
+              active={location.pathname === "/finance/accounting"}
+            />
+            <SidebarSubItem
+              to="/finance/invoice"
+              label="Invoice"
+              isLast={false}
+              active={location.pathname === "/finance/invoice"}
+            />
+            <SidebarSubItem
+              to="/finance/payment"
+              label="Payment"
+              isLast={true}
+              active={location.pathname === "/finance/payment"}
+            />
+          </SidebarItem>
+          <SidebarItem
+            to="/inventory"
+            icon={<Package className="h-[18px] w-[18px]" />}
+            label="Inventory"
+            active={location.pathname === "/inventory"}
+          />
+          <SidebarItem
+            to="/sales"
+            icon={<TrendingUp className="h-[18px] w-[18px]" />}
+            label="Sales"
+            active={location.pathname === "/sales"}
+          />
+
+          <SidebarItem
+            to="/reports"
+            icon={<FileBarChart className="h-[18px] w-[18px]" />}
+            label="Reports"
+            active={location.pathname === "/reports"}
+          />
+
+          <SidebarItem
+            icon={<Ticket className="h-[18px] w-[18px]" />}
+            label="Tickets"
+            hasChevron
+            active={location.pathname.startsWith("/tickets")}
+          >
+            <SidebarSubItem
+              to="/tickets/all"
+              label="All / My Queue"
+              isLast={false}
+              active={location.pathname === "/tickets/all"}
+            />
+            <SidebarSubItem
+              to="/tickets/sla"
+              label="SLA Breach Risk"
+              isLast={false}
+              active={location.pathname === "/tickets/sla"}
+            />
+            <SidebarSubItem
+              to="/tickets/escalations"
+              label="Escalations"
+              isLast={true}
+              active={location.pathname === "/tickets/escalations"}
+            />
+          </SidebarItem>
+
+          <SidebarItem
+            to="/clients"
+            icon={<Contact className="h-[18px] w-[18px]" />}
+            label="Clients"
+            active={location.pathname === "/clients"}
+          />
+          <SidebarItem
+            to="/agents"
+            icon={<Users2 className="h-[18px] w-[18px]" />}
+            label="Agents & Teams"
+            hasChevron
+            active={location.pathname === "/agents"}
+          >
+            <SidebarSubItem
+              to="/agents/teams"
+              label="Teams Gallery"
+              isLast={false}
+            />
+            <SidebarSubItem
+              to="/agents/performance"
+              label="Performance"
+              isLast={true}
+            />
+          </SidebarItem>
+          <SidebarItem
+            to="/knowledge-base"
+            icon={<FileText className="h-[18px] w-[18px]" />}
+            label="Knowledge Base"
+            hasChevron
+            active={location.pathname === "/knowledge-base"}
+          >
+            <SidebarSubItem
+              to="/kb/articles"
+              label="All Articles"
+              isLast={false}
+            />
+            <SidebarSubItem
+              to="/kb/categories"
+              label="Categories"
+              isLast={true}
+            />
+          </SidebarItem>
+          <SidebarItem
+            to="/integrations"
+            icon={<LinkIcon className="h-[18px] w-[18px]" />}
+            label="Integrations"
+            active={location.pathname === "/integrations"}
+          />
+        </div>
+
+        {/* Analytics & Insights */}
+        <div className="flex flex-col gap-1">
+          <div className="px-3 mb-2">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Analytics & Insights
+            </h2>
+          </div>
+          <SidebarItem
+            to="/sla-compliance"
+            icon={<ShieldCheck className="h-[18px] w-[18px]" />}
+            label="SLA Compliance"
+            active={location.pathname === "/sla-compliance"}
+          />
+          <SidebarItem
+            to="/csat-nps"
+            icon={<Star className="h-[18px] w-[18px]" />}
+            label="CSAT & NPS"
+            active={location.pathname === "/csat-nps"}
+          />
+          <SidebarItem
+            to="/workload"
+            icon={<BarChart3 className="h-[18px] w-[18px]" />}
+            label="Workload Analytics"
+            active={location.pathname === "/workload"}
+          />
+          <SidebarItem
+            to="/reports"
+            icon={<FileText className="h-[18px] w-[18px]" />}
+            label="Reports"
+            active={location.pathname === "/reports"}
+          />
+        </div>
+
+        {/* Support Section */}
+        <div className="flex flex-col gap-1">
+          <div className="px-3 mb-2 mt-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            Support
+          </div>
+          <SidebarItem
+            to="/feedback"
+            icon={<MessageSquare className="h-[18px] w-[18px]" />}
+            label="Feedback"
+            active={location.pathname === "/feedback"}
+          />
+          <SidebarItem
+            to="/help"
+            icon={<LifeBuoy className="h-[18px] w-[18px]" />}
+            label="Help & Support"
+            active={location.pathname === "/help"}
+          />
+          <SidebarItem
+            to="/settings"
+            icon={<Settings className="h-[18px] w-[18px]" />}
+            label="Settings"
+            active={location.pathname === "/settings"}
+          />
+        </div>
+      </div>
+
+      {/* Footer Area: User Profile */}
+      <div className="pt-2">
+        <Link
+          to="/profile"
+          className="p-2 bg-white dark:bg-card rounded-2xl border border-sidebar-border dark:border-white/5 shadow-sm flex items-center gap-3 transition-all hover:border-slate-300 dark:hover:border-white/10 group cursor-pointer"
+        >
+          <div className="relative">
+            <Avatar className="h-9 w-9 border border-slate-100 dark:border-white/10">
+              <AvatarImage src="" />
+              <AvatarFallback className="bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-slate-100 text-xs font-bold">
+                AH
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111111]" />
+          </div>
+          <div className="flex flex-col overflow-hidden flex-1">
+            <span className="text-sm font-bold truncate text-slate-900 dark:text-foreground">
+              Achmad Hakim
+            </span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+              achmadhakim@gmail.com
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5 text-slate-400 mr-1">
+            <ChevronUp className="h-3 w-3" />
+            <ChevronDown className="h-3 w-3 -mt-1.5" />
+          </div>
+        </Link>
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/login")}
+          className="w-full justify-start gap-3 px-3 h-10 font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 mt-2 rounded-xl transition-all"
+        >
+          <LogOut className="h-[18px] w-[18px]" />
+          <span className="text-sm uppercase tracking-widest">
+            Logout System
+          </span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+interface SidebarItemProps {
+  icon: React.ReactNode;
+  label: string;
+  to?: string;
+  active?: boolean;
+  hasChevron?: boolean;
+  children?: React.ReactNode;
+}
+
+function SidebarItem({
+  icon,
+  label,
+  to = "#",
+  active = false,
+  hasChevron = false,
+  children,
+}: SidebarItemProps) {
+  return (
+    <div className="relative group/menu">
+      <Link to={to} className="block w-full">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-3 px-3 h-10 font-medium transition-all group",
+            active
+              ? "bg-white dark:bg-primary/10 text-sidebar-primary shadow-[0_2px_4px_rgba(0,0,0,0.04)] ring-1 ring-sidebar-border dark:ring-primary/20 hover:bg-white dark:hover:bg-primary/20"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <div
+            className={cn(
+              "transition-colors",
+              active
+                ? "text-sidebar-primary"
+                : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300",
+            )}
+          >
+            {icon}
+          </div>
+          <span className="flex-1 text-left text-sm">{label}</span>
+          {hasChevron && (
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform text-slate-300 group-hover:text-slate-400 dark:text-slate-600",
+                children && "group-hover/menu:rotate-180",
+              )}
+            />
+          )}
+        </Button>
+      </Link>
+
+      {children && (
+        <div className="hidden group-hover/menu:block pl-4 mt-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="absolute left-4 top-0 bottom-0 w-px bg-sidebar-border" />
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SidebarSubItem({
+  label,
+  isLast,
+  to = "#",
+  active = false,
+}: {
+  label: string;
+  isLast: boolean;
+  to?: string;
+  active?: boolean;
+}) {
+  return (
+    <Link
+      to={to}
+      className="relative flex items-center h-8 group cursor-pointer pl-6"
+    >
+      {/* Vertical line: Stops halfway (at the junction) if it's the last item */}
+      <div
+        className={cn(
+          "absolute -left-px top-0 w-px bg-sidebar-border",
+          isLast ? "h-4" : "h-full",
+        )}
+      />
+      {/* Horizontal line: Connects the vertical line to the label area */}
+      <div className="absolute -left-px top-4 w-4 h-px bg-sidebar-border" />
+
+      <span
+        className={cn(
+          "text-sm transition-colors",
+          active
+            ? "text-sidebar-primary font-bold"
+            : "text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300",
+        )}
+      >
+        {label}
+      </span>
+    </Link>
+  );
+}
