@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   FilePlus,
   TrendingUp,
@@ -11,8 +12,33 @@ import { InvoiceTable } from "./components/InvoiceTable";
 import { InvoiceActivity } from "./components/InvoiceActivity";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getInvoices } from "@/api/invoices";
+import type { Invoice } from "./types";
 
 export default function InvoicePage() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const loadInvoices = async () => {
+    const data = await getInvoices();
+    setInvoices(data);
+  };
+
+  useEffect(() => {
+    loadInvoices();
+  }, []);
+
+  const totalInvoiced = invoices.reduce((sum, inv) => {
+    return sum + inv.lineItems.reduce((s, i) => s + (i.priceAfterTax ?? i.subtotal), 0);
+  }, 0);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(value);
+
   return (
     <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
       {/* Header with Quick Actions */}
@@ -33,7 +59,10 @@ export default function InvoicePage() {
           >
             <FileDown className="h-4 w-4" /> Export Ledger
           </Button>
-          <Button className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all">
+          <Button
+            className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
+            onClick={() => setIsAddOpen(true)}
+          >
             <FilePlus className="h-4 w-4" /> Create Invoice
           </Button>
         </div>
@@ -42,15 +71,15 @@ export default function InvoicePage() {
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <InvSummaryCard
-          title="Total Invoiced (Q1)"
-          value="$342,800"
-          description="+14% from last quarter"
+          title="Total Invoiced"
+          value={formatCurrency(totalInvoiced)}
+          description={`${invoices.length} invoice(s)`}
           icon={<FileText className="h-4 w-4" />}
           color="#3b82f6"
         />
         <InvSummaryCard
           title="Pending Collection"
-          value="$45,210"
+          value={formatCurrency(totalInvoiced)}
           description="Due within next 15 days"
           icon={<CreditCard className="h-4 w-4" />}
           color="#f59e0b"
@@ -69,7 +98,13 @@ export default function InvoicePage() {
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         {/* Invoice Table */}
         <div className="xl:col-span-8">
-          <InvoiceTable />
+          <InvoiceTable
+            invoices={invoices}
+            onRefresh={loadInvoices}
+            onAddClick={() => setIsAddOpen(true)}
+            isAddOpen={isAddOpen}
+            onAddOpenChange={setIsAddOpen}
+          />
         </div>
 
         {/* Activity Card */}
@@ -133,7 +168,14 @@ function InvSummaryCard({
   icon,
   color,
   badge,
-}: any) {
+}: {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  badge?: string;
+}) {
   return (
     <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center mb-2 px-1">

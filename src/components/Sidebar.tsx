@@ -1,11 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
-  Ticket,
-  Contact,
-  Users2,
   FileText,
-  Link as LinkIcon,
   ShieldCheck,
   Star,
   BarChart3,
@@ -17,23 +13,44 @@ import {
   LayoutGrid,
   PanelLeft,
   ChevronUp,
-  LayoutDashboard,
-  Wallet,
-  Package,
-  FileBarChart,
   LogOut,
-  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { usePermissions, useAuth } from "@/contexts/AuthContext";
+import { MAIN_NAV_MENU, type MenuItemConfig } from "@/lib/menuConfig";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+/** Filter menu items by permissions: show item if user has permission or has any allowed child */
+function filterMenuByPermissions(
+  menu: MenuItemConfig[],
+  permissions: string[]
+): MenuItemConfig[] {
+  if (permissions.length === 0) return [];
+  return menu.filter((item) => {
+    const hasParent = permissions.includes(item.permissionKey);
+    const allowedChildren =
+      item.children?.filter((c) => permissions.includes(c.permissionKey)) ?? [];
+    if (item.children?.length) {
+      return hasParent || allowedChildren.length > 0;
+    }
+    return hasParent;
+  });
+}
 
 export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const permissions = usePermissions();
+  const { currentUser, isLoading } = useAuth();
+
+  const mainNavItems = useMemo(
+    () => (isLoading ? MAIN_NAV_MENU : filterMenuByPermissions(MAIN_NAV_MENU, permissions)),
+    [permissions, isLoading]
+  );
 
   return (
     <div
@@ -76,7 +93,7 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         </div>
 
-        {/* Main Navigation */}
+        {/* Main Navigation (RBAC from menuConfig) */}
         <div className="flex flex-col gap-1">
           <div className="px-3 mb-2">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400/80">
@@ -84,132 +101,46 @@ export function Sidebar({ className }: SidebarProps) {
             </h2>
           </div>
 
-          <SidebarItem
-            to="/dashboard"
-            icon={<LayoutDashboard className="h-[18px] w-[18px]" />}
-            label="Dashboard"
-            active={location.pathname === "/dashboard"}
-          />
+          {mainNavItems.map((item) => {
+            const allowedChildren =
+              item.children?.filter((c) => permissions.includes(c.permissionKey)) ?? [];
+            const hasChildren = allowedChildren.length > 0;
+            const isParentActive =
+              item.children?.some((c) => location.pathname === c.path) ??
+              location.pathname.startsWith(item.path);
 
-          <SidebarItem
-            icon={<Wallet className="h-[18px] w-[18px]" />}
-            label="Finance"
-            hasChevron
-            active={location.pathname.startsWith("/finance")}
-          >
-            <SidebarSubItem
-              to="/finance/accounting"
-              label="Accounting"
-              isLast={false}
-              active={location.pathname === "/finance/accounting"}
-            />
-            <SidebarSubItem
-              to="/finance/invoice"
-              label="Invoice"
-              isLast={false}
-              active={location.pathname === "/finance/invoice"}
-            />
-            <SidebarSubItem
-              to="/finance/payment"
-              label="Payment"
-              isLast={true}
-              active={location.pathname === "/finance/payment"}
-            />
-          </SidebarItem>
-          <SidebarItem
-            to="/inventory"
-            icon={<Package className="h-[18px] w-[18px]" />}
-            label="Inventory"
-            active={location.pathname === "/inventory"}
-          />
-          <SidebarItem
-            to="/sales"
-            icon={<TrendingUp className="h-[18px] w-[18px]" />}
-            label="Sales"
-            active={location.pathname === "/sales"}
-          />
-
-          <SidebarItem
-            to="/reports"
-            icon={<FileBarChart className="h-[18px] w-[18px]" />}
-            label="Reports"
-            active={location.pathname === "/reports"}
-          />
-
-          <SidebarItem
-            icon={<Ticket className="h-[18px] w-[18px]" />}
-            label="Tickets"
-            hasChevron
-            active={location.pathname.startsWith("/tickets")}
-          >
-            <SidebarSubItem
-              to="/tickets/all"
-              label="All / My Queue"
-              isLast={false}
-              active={location.pathname === "/tickets/all"}
-            />
-            <SidebarSubItem
-              to="/tickets/sla"
-              label="SLA Breach Risk"
-              isLast={false}
-              active={location.pathname === "/tickets/sla"}
-            />
-            <SidebarSubItem
-              to="/tickets/escalations"
-              label="Escalations"
-              isLast={true}
-              active={location.pathname === "/tickets/escalations"}
-            />
-          </SidebarItem>
-
-          <SidebarItem
-            to="/clients"
-            icon={<Contact className="h-[18px] w-[18px]" />}
-            label="Clients"
-            active={location.pathname === "/clients"}
-          />
-          <SidebarItem
-            to="/agents"
-            icon={<Users2 className="h-[18px] w-[18px]" />}
-            label="Agents & Teams"
-            hasChevron
-            active={location.pathname === "/agents"}
-          >
-            <SidebarSubItem
-              to="/agents/teams"
-              label="Teams Gallery"
-              isLast={false}
-            />
-            <SidebarSubItem
-              to="/agents/performance"
-              label="Performance"
-              isLast={true}
-            />
-          </SidebarItem>
-          <SidebarItem
-            to="/knowledge-base"
-            icon={<FileText className="h-[18px] w-[18px]" />}
-            label="Knowledge Base"
-            hasChevron
-            active={location.pathname === "/knowledge-base"}
-          >
-            <SidebarSubItem
-              to="/kb/articles"
-              label="All Articles"
-              isLast={false}
-            />
-            <SidebarSubItem
-              to="/kb/categories"
-              label="Categories"
-              isLast={true}
-            />
-          </SidebarItem>
-          <SidebarItem
-            to="/integrations"
-            icon={<LinkIcon className="h-[18px] w-[18px]" />}
-            label="Integrations"
-            active={location.pathname === "/integrations"}
-          />
+            if (item.children?.length) {
+              return (
+                <SidebarItem
+                  key={item.permissionKey}
+                  to={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  hasChevron={hasChildren}
+                  active={isParentActive}
+                >
+                  {allowedChildren.map((child, idx) => (
+                    <SidebarSubItem
+                      key={child.permissionKey}
+                      to={child.path}
+                      label={child.label}
+                      isLast={idx === allowedChildren.length - 1}
+                      active={location.pathname === child.path}
+                    />
+                  ))}
+                </SidebarItem>
+              );
+            }
+            return (
+              <SidebarItem
+                key={item.permissionKey}
+                to={item.path}
+                icon={item.icon}
+                label={item.label}
+                active={location.pathname === item.path}
+              />
+            );
+          })}
         </div>
 
         {/* Analytics & Insights */}
@@ -281,17 +212,22 @@ export function Sidebar({ className }: SidebarProps) {
             <Avatar className="h-9 w-9 border border-slate-100 dark:border-white/10">
               <AvatarImage src="" />
               <AvatarFallback className="bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-slate-100 text-xs font-bold">
-                AH
+                {currentUser?.fullName
+                  ?.split(/\s+/)
+                  .map((s) => s[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase() ?? "—"}
               </AvatarFallback>
             </Avatar>
             <div className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111111]" />
           </div>
           <div className="flex flex-col overflow-hidden flex-1">
             <span className="text-sm font-bold truncate text-slate-900 dark:text-foreground">
-              Achmad Hakim
+              {currentUser?.fullName ?? "—"}
             </span>
             <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
-              achmadhakim@gmail.com
+              {currentUser?.email ?? "—"}
             </span>
           </div>
           <div className="flex flex-col gap-0.5 text-slate-400 mr-1">

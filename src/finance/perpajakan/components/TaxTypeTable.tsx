@@ -1,9 +1,10 @@
 import {
-  Package,
   Search,
   MoreVertical,
+  Eye,
   Pencil,
   Trash2,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,53 +32,56 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { InventoryItemFormDialog } from "./InventoryItemFormDialog";
-import { deleteInventoryItem } from "@/api/inventory";
-import type { InventoryItem } from "../types";
+import { TaxTypeFormDialog } from "./TaxTypeFormDialog";
+import { TaxTypeViewDialog } from "./TaxTypeViewDialog";
+import { TaxTypePdfViewer } from "./TaxTypePdfViewer";
+import { deleteTaxType } from "@/api/tax-types";
+import type { TaxType } from "../types";
 
-interface InventoryStockTableProps {
-  items: InventoryItem[];
+interface TaxTypeTableProps {
+  taxTypes: TaxType[];
   onRefresh: () => void;
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(price);
-}
+const CATEGORY_LABELS: Record<string, string> = {
+  output_tax: "Output Tax",
+  withholding_tax: "Withholding Tax",
+};
 
-export function InventoryStockTable({
-  items,
+export function TaxTypeTable({
+  taxTypes,
   onRefresh,
   onAddClick,
   isAddOpen,
   onAddOpenChange,
-}: InventoryStockTableProps) {
+}: TaxTypeTableProps) {
   const [search, setSearch] = useState("");
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
-  const [deleteItemName, setDeleteItemName] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [editTaxType, setEditTaxType] = useState<TaxType | null>(null);
+  const [viewTaxType, setViewTaxType] = useState<TaxType | null>(null);
+  const [pdfTaxType, setPdfTaxType] = useState<TaxType | null>(null);
+  const [deleteTaxTypeId, setDeleteTaxTypeId] = useState<string | null>(null);
+  const [deleteTaxTypeName, setDeleteTaxTypeName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const filtered = items.filter(
-    (i) =>
-      i.code.toLowerCase().includes(search.toLowerCase()) ||
-      i.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = taxTypes.filter((t) => {
+    const matchSearch =
+      t.code.toLowerCase().includes(search.toLowerCase()) ||
+      t.name.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = categoryFilter === "all" || t.category === categoryFilter;
+    return matchSearch && matchCategory;
+  });
 
   const handleDeleteConfirm = async () => {
-    if (!deleteItemId) return;
+    if (!deleteTaxTypeId) return;
     setIsDeleting(true);
     try {
-      await deleteInventoryItem(deleteItemId);
+      await deleteTaxType(deleteTaxTypeId);
       onRefresh();
-      setDeleteItemId(null);
+      setDeleteTaxTypeId(null);
     } finally {
       setIsDeleting(false);
     }
@@ -89,7 +93,7 @@ export function InventoryStockTable({
   };
 
   const handleEditSuccess = () => {
-    setEditItem(null);
+    setEditTaxType(null);
     onRefresh();
   };
 
@@ -98,7 +102,7 @@ export function InventoryStockTable({
       <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
         <div className="flex justify-between items-center mb-3 px-2">
           <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-            <Package className="h-4 w-4" /> IT Asset Inventory
+            <FileText className="h-4 w-4" /> Perpajakan / Tax Types
           </span>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -110,11 +114,20 @@ export function InventoryStockTable({
                 className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-1 pl-8 pr-4 text-[10px] focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none w-48 text-foreground"
               />
             </div>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-7 px-3 rounded-lg text-[10px] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10"
+            >
+              <option value="all">All Categories</option>
+              <option value="output_tax">Output Tax</option>
+              <option value="withholding_tax">Withholding Tax</option>
+            </select>
             <Button
               className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
               onClick={onAddClick}
             >
-              Add Asset
+              Add Tax Type
             </Button>
           </div>
         </div>
@@ -130,33 +143,53 @@ export function InventoryStockTable({
                   Name
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Quantity
+                  Rate
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Price
+                  Category
+                </TableHead>
+                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  Applicable To
+                </TableHead>
+                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  Status
                 </TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((item) => (
+              {filtered.map((t) => (
                 <TableRow
-                  key={item.id}
+                  key={t.id}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
                 >
                   <TableCell className="py-3">
                     <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                      {item.code}
+                      {t.code}
                     </span>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.name}
+                    {t.name}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.quantity}
+                    {t.rate}%
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {formatPrice(item.price)}
+                    {CATEGORY_LABELS[t.category] ?? t.category}
+                  </TableCell>
+                  <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
+                    {t.applicableDocuments.join(", ").toUpperCase()}
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        t.isActive
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+                          : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
+                      {t.isActive ? "Active" : "Inactive"}
+                    </span>
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <DropdownMenu>
@@ -170,14 +203,20 @@ export function InventoryStockTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditItem(item)}>
+                        <DropdownMenuItem onClick={() => setViewTaxType(t)}>
+                          <Eye className="h-3.5 w-3.5 mr-2" /> View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setPdfTaxType(t)}>
+                          <FileText className="h-3.5 w-3.5 mr-2" /> View PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditTaxType(t)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
                           onClick={() => {
-                            setDeleteItemId(item.id);
-                            setDeleteItemName(item.name);
+                            setDeleteTaxTypeId(t.id);
+                            setDeleteTaxTypeName(t.name);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
@@ -192,29 +231,45 @@ export function InventoryStockTable({
         </CardContent>
       </Card>
 
-      <InventoryItemFormDialog
+      <TaxTypeFormDialog
         open={isAddOpen}
         onOpenChange={onAddOpenChange}
         onSuccess={handleAddSuccess}
       />
 
-      <InventoryItemFormDialog
-        open={!!editItem}
-        onOpenChange={(open) => !open && setEditItem(null)}
-        item={editItem ?? undefined}
+      <TaxTypeFormDialog
+        open={!!editTaxType}
+        onOpenChange={(open) => !open && setEditTaxType(null)}
+        taxType={editTaxType ?? undefined}
         onSuccess={handleEditSuccess}
       />
 
+      <TaxTypeViewDialog
+        taxType={viewTaxType}
+        onOpenChange={(open) => !open && setViewTaxType(null)}
+        onEdit={() => {
+          if (viewTaxType) {
+            setViewTaxType(null);
+            setEditTaxType(viewTaxType);
+          }
+        }}
+      />
+
+      <TaxTypePdfViewer
+        taxType={pdfTaxType}
+        onOpenChange={(open) => !open && setPdfTaxType(null)}
+      />
+
       <AlertDialog
-        open={!!deleteItemId}
-        onOpenChange={(open) => !open && setDeleteItemId(null)}
+        open={!!deleteTaxTypeId}
+        onOpenChange={(open) => !open && setDeleteTaxTypeId(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+            <AlertDialogTitle>Delete Tax Type</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteItemName}</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete <strong>{deleteTaxTypeName}</strong>? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

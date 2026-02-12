@@ -1,10 +1,4 @@
-import {
-  Package,
-  Search,
-  MoreVertical,
-  Pencil,
-  Trash2,
-} from "lucide-react";
+import { Search, MoreVertical, Pencil, Trash2, Shield } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,53 +25,44 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { InventoryItemFormDialog } from "./InventoryItemFormDialog";
-import { deleteInventoryItem } from "@/api/inventory";
-import type { InventoryItem } from "../types";
+import { RoleFormDialog } from "./RoleFormDialog";
+import { deleteRole } from "@/api/roles";
+import type { Role } from "../types";
 
-interface InventoryStockTableProps {
-  items: InventoryItem[];
+interface RoleTableProps {
+  roles: Role[];
   onRefresh: () => void;
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(price);
-}
-
-export function InventoryStockTable({
-  items,
+export function RoleTable({
+  roles,
   onRefresh,
   onAddClick,
   isAddOpen,
   onAddOpenChange,
-}: InventoryStockTableProps) {
+}: RoleTableProps) {
   const [search, setSearch] = useState("");
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
-  const [deleteItemName, setDeleteItemName] = useState("");
+  const [editRole, setEditRole] = useState<Role | null>(null);
+  const [deleteRoleId, setDeleteRoleId] = useState<string | null>(null);
+  const [deleteRoleName, setDeleteRoleName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const filtered = items.filter(
-    (i) =>
-      i.code.toLowerCase().includes(search.toLowerCase()) ||
-      i.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = roles.filter(
+    (r) =>
+      r.code.toLowerCase().includes(search.toLowerCase()) ||
+      r.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {
-    if (!deleteItemId) return;
+    if (!deleteRoleId) return;
     setIsDeleting(true);
     try {
-      await deleteInventoryItem(deleteItemId);
+      await deleteRole(deleteRoleId);
       onRefresh();
-      setDeleteItemId(null);
+      setDeleteRoleId(null);
     } finally {
       setIsDeleting(false);
     }
@@ -89,7 +74,7 @@ export function InventoryStockTable({
   };
 
   const handleEditSuccess = () => {
-    setEditItem(null);
+    setEditRole(null);
     onRefresh();
   };
 
@@ -98,7 +83,7 @@ export function InventoryStockTable({
       <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
         <div className="flex justify-between items-center mb-3 px-2">
           <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-            <Package className="h-4 w-4" /> IT Asset Inventory
+            <Shield className="h-4 w-4" /> Roles
           </span>
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -114,7 +99,7 @@ export function InventoryStockTable({
               className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
               onClick={onAddClick}
             >
-              Add Asset
+              Add Role
             </Button>
           </div>
         </div>
@@ -130,33 +115,47 @@ export function InventoryStockTable({
                   Name
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Quantity
+                  Description
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Price
+                  Permissions
+                </TableHead>
+                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  Status
                 </TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((item) => (
+              {filtered.map((r) => (
                 <TableRow
-                  key={item.id}
+                  key={r.id}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
                 >
                   <TableCell className="py-3">
                     <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                      {item.code}
+                      {r.code}
                     </span>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.name}
+                    {r.name}
+                  </TableCell>
+                  <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
+                    {r.description ?? "—"}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.quantity}
+                    {r.permissionKeys.length} keys
                   </TableCell>
-                  <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {formatPrice(item.price)}
+                  <TableCell className="py-3">
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        r.isActive
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+                          : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
+                      {r.isActive ? "Active" : "Inactive"}
+                    </span>
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <DropdownMenu>
@@ -170,14 +169,14 @@ export function InventoryStockTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditItem(item)}>
+                        <DropdownMenuItem onClick={() => setEditRole(r)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
                           onClick={() => {
-                            setDeleteItemId(item.id);
-                            setDeleteItemName(item.name);
+                            setDeleteRoleId(r.id);
+                            setDeleteRoleName(r.name);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
@@ -192,38 +191,34 @@ export function InventoryStockTable({
         </CardContent>
       </Card>
 
-      <InventoryItemFormDialog
+      <RoleFormDialog
         open={isAddOpen}
         onOpenChange={onAddOpenChange}
         onSuccess={handleAddSuccess}
       />
 
-      <InventoryItemFormDialog
-        open={!!editItem}
-        onOpenChange={(open) => !open && setEditItem(null)}
-        item={editItem ?? undefined}
+      <RoleFormDialog
+        open={!!editRole}
+        onOpenChange={(open) => !open && setEditRole(null)}
+        role={editRole ?? undefined}
         onSuccess={handleEditSuccess}
       />
 
       <AlertDialog
-        open={!!deleteItemId}
-        onOpenChange={(open) => !open && setDeleteItemId(null)}
+        open={!!deleteRoleId}
+        onOpenChange={(open) => !open && setDeleteRoleId(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+            <AlertDialogTitle>Delete Role</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteItemName}</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete <strong>{deleteRoleName}</strong>? Users assigned to
+              this role will need to be reassigned. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={isDeleting}
-            >
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting}>
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </AlertDialogFooter>

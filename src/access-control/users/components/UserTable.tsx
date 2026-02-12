@@ -1,11 +1,5 @@
-import {
-  Package,
-  Search,
-  MoreVertical,
-  Pencil,
-  Trash2,
-} from "lucide-react";
-import { useState } from "react";
+import { Search, MoreVertical, Pencil, Trash2, Users } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,53 +25,54 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { InventoryItemFormDialog } from "./InventoryItemFormDialog";
-import { deleteInventoryItem } from "@/api/inventory";
-import type { InventoryItem } from "../types";
+import { UserFormDialog } from "./UserFormDialog";
+import { deleteUser } from "@/api/users";
+import { getRoles } from "@/api/roles";
+import type { User } from "../types";
+import type { Role } from "@/access-control/roles/types";
 
-interface InventoryStockTableProps {
-  items: InventoryItem[];
+interface UserTableProps {
+  users: User[];
   onRefresh: () => void;
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(price);
-}
-
-export function InventoryStockTable({
-  items,
+export function UserTable({
+  users,
   onRefresh,
   onAddClick,
   isAddOpen,
   onAddOpenChange,
-}: InventoryStockTableProps) {
+}: UserTableProps) {
   const [search, setSearch] = useState("");
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
-  const [deleteItemName, setDeleteItemName] = useState("");
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [deleteUserName, setDeleteUserName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [roles, setRoles] = useState<Role[]>([]);
 
-  const filtered = items.filter(
-    (i) =>
-      i.code.toLowerCase().includes(search.toLowerCase()) ||
-      i.name.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    getRoles().then(setRoles);
+  }, []);
+
+  const roleMap = new Map(roles.map((r) => [r.id, r]));
+
+  const filtered = users.filter(
+    (u) =>
+      u.username.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      u.fullName.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {
-    if (!deleteItemId) return;
+    if (!deleteUserId) return;
     setIsDeleting(true);
     try {
-      await deleteInventoryItem(deleteItemId);
+      await deleteUser(deleteUserId);
       onRefresh();
-      setDeleteItemId(null);
+      setDeleteUserId(null);
     } finally {
       setIsDeleting(false);
     }
@@ -89,7 +84,7 @@ export function InventoryStockTable({
   };
 
   const handleEditSuccess = () => {
-    setEditItem(null);
+    setEditUser(null);
     onRefresh();
   };
 
@@ -98,23 +93,23 @@ export function InventoryStockTable({
       <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
         <div className="flex justify-between items-center mb-3 px-2">
           <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-            <Package className="h-4 w-4" /> IT Asset Inventory
+            <Users className="h-4 w-4" /> Users
           </span>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
               <input
-                placeholder="Search code, name..."
+                placeholder="Search username, email, name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-1 pl-8 pr-4 text-[10px] focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none w-48 text-foreground"
+                className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-1 pl-8 pr-4 text-[10px] focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none w-56 text-foreground"
               />
             </div>
             <Button
               className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
               onClick={onAddClick}
             >
-              Add Asset
+              Add User
             </Button>
           </div>
         </div>
@@ -124,39 +119,53 @@ export function InventoryStockTable({
             <TableHeader className="bg-slate-50/50 dark:bg-white/5">
               <TableRow className="hover:bg-transparent border-slate-100 dark:border-white/5">
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Code
+                  Username
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Name
+                  Email
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Quantity
+                  Full Name
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Price
+                  Role
+                </TableHead>
+                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  Status
                 </TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((item) => (
+              {filtered.map((u) => (
                 <TableRow
-                  key={item.id}
+                  key={u.id}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
                 >
                   <TableCell className="py-3">
                     <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                      {item.code}
+                      {u.username}
                     </span>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.name}
+                    {u.email}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.quantity}
+                    {u.fullName}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {formatPrice(item.price)}
+                    {roleMap.get(u.roleId)?.name ?? u.roleId}
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        u.isActive
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+                          : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
+                      {u.isActive ? "Active" : "Inactive"}
+                    </span>
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <DropdownMenu>
@@ -170,14 +179,14 @@ export function InventoryStockTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditItem(item)}>
+                        <DropdownMenuItem onClick={() => setEditUser(u)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
                           onClick={() => {
-                            setDeleteItemId(item.id);
-                            setDeleteItemName(item.name);
+                            setDeleteUserId(u.id);
+                            setDeleteUserName(u.username);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
@@ -192,38 +201,31 @@ export function InventoryStockTable({
         </CardContent>
       </Card>
 
-      <InventoryItemFormDialog
+      <UserFormDialog
         open={isAddOpen}
         onOpenChange={onAddOpenChange}
         onSuccess={handleAddSuccess}
       />
 
-      <InventoryItemFormDialog
-        open={!!editItem}
-        onOpenChange={(open) => !open && setEditItem(null)}
-        item={editItem ?? undefined}
+      <UserFormDialog
+        open={!!editUser}
+        onOpenChange={(open) => !open && setEditUser(null)}
+        user={editUser ?? undefined}
         onSuccess={handleEditSuccess}
       />
 
-      <AlertDialog
-        open={!!deleteItemId}
-        onOpenChange={(open) => !open && setDeleteItemId(null)}
-      >
+      <AlertDialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteItemName}</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete user <strong>{deleteUserName}</strong>? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={isDeleting}
-            >
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting}>
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
           </AlertDialogFooter>

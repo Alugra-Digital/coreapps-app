@@ -1,9 +1,11 @@
 import {
-  Package,
   Search,
+  Filter,
   MoreVertical,
+  Eye,
   Pencil,
   Trash2,
+  FileText,
 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,53 +33,61 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { InventoryItemFormDialog } from "./InventoryItemFormDialog";
-import { deleteInventoryItem } from "@/api/inventory";
-import type { InventoryItem } from "../types";
+import { BASTFormDialog } from "./BASTFormDialog";
+import { BASTViewDialog } from "./BASTViewDialog";
+import { BASTPdfViewer } from "./BASTPdfViewer";
+import { deleteBast } from "@/api/bast";
+import type { BAST } from "../types";
 
-interface InventoryStockTableProps {
-  items: InventoryItem[];
+interface BASTTableProps {
+  basts: BAST[];
   onRefresh: () => void;
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(price);
+function formatBastMonth(month: string): string {
+  if (!month) return "-";
+  const [year, mo] = month.split("-");
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+    "Jul", "Agu", "Sep", "Okt", "Nov", "Des",
+  ];
+  const idx = parseInt(mo, 10) - 1;
+  return idx >= 0 && idx < 12 ? `${months[idx]} ${year}` : month;
 }
 
-export function InventoryStockTable({
-  items,
+export function BASTTable({
+  basts,
   onRefresh,
   onAddClick,
   isAddOpen,
   onAddOpenChange,
-}: InventoryStockTableProps) {
+}: BASTTableProps) {
   const [search, setSearch] = useState("");
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
-  const [deleteItemName, setDeleteItemName] = useState("");
+  const [editBast, setEditBast] = useState<BAST | null>(null);
+  const [viewBast, setViewBast] = useState<BAST | null>(null);
+  const [pdfBast, setPdfBast] = useState<BAST | null>(null);
+  const [deleteBastId, setDeleteBastId] = useState<string | null>(null);
+  const [deleteBastNumber, setDeleteBastNumber] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const filtered = items.filter(
-    (i) =>
-      i.code.toLowerCase().includes(search.toLowerCase()) ||
-      i.name.toLowerCase().includes(search.toLowerCase())
+  const filtered = basts.filter(
+    (b) =>
+      b.documentInfo.bastNumber.toLowerCase().includes(search.toLowerCase()) ||
+      b.coverInfo.companyName.toLowerCase().includes(search.toLowerCase()) ||
+      b.coverInfo.jobOffer.toLowerCase().includes(search.toLowerCase()) ||
+      b.documentInfo.relatedPoOrInvoice?.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {
-    if (!deleteItemId) return;
+    if (!deleteBastId) return;
     setIsDeleting(true);
     try {
-      await deleteInventoryItem(deleteItemId);
+      await deleteBast(deleteBastId);
       onRefresh();
-      setDeleteItemId(null);
+      setDeleteBastId(null);
     } finally {
       setIsDeleting(false);
     }
@@ -89,7 +99,7 @@ export function InventoryStockTable({
   };
 
   const handleEditSuccess = () => {
-    setEditItem(null);
+    setEditBast(null);
     onRefresh();
   };
 
@@ -98,23 +108,30 @@ export function InventoryStockTable({
       <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
         <div className="flex justify-between items-center mb-3 px-2">
           <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-            <Package className="h-4 w-4" /> IT Asset Inventory
+            <FileText className="h-4 w-4" /> BAST List
           </span>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
               <input
-                placeholder="Search code, name..."
+                placeholder="Search BAST #, Company, Job..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-1 pl-8 pr-4 text-[10px] focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none w-48 text-foreground"
               />
             </div>
             <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-2 rounded-lg text-[10px] font-medium bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
+            >
+              <Filter className="h-3.5 w-3.5" /> Filter
+            </Button>
+            <Button
               className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
               onClick={onAddClick}
             >
-              Add Asset
+              Add BAST
             </Button>
           </div>
         </div>
@@ -124,39 +141,45 @@ export function InventoryStockTable({
             <TableHeader className="bg-slate-50/50 dark:bg-white/5">
               <TableRow className="hover:bg-transparent border-slate-100 dark:border-white/5">
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Code
+                  BAST Number
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Name
+                  Date
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Quantity
+                  Job Offer
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Price
+                  Month
+                </TableHead>
+                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  Related PO/Invoice
                 </TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((item) => (
+              {filtered.map((b) => (
                 <TableRow
-                  key={item.id}
+                  key={b.id}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
                 >
                   <TableCell className="py-3">
                     <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                      {item.code}
+                      {b.documentInfo.bastNumber}
                     </span>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.name}
+                    {b.documentInfo.bastDate}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.quantity}
+                    {b.coverInfo.jobOffer}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {formatPrice(item.price)}
+                    {formatBastMonth(b.coverInfo.bastMonth)}
+                  </TableCell>
+                  <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
+                    {b.documentInfo.relatedPoOrInvoice ?? "-"}
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <DropdownMenu>
@@ -170,14 +193,20 @@ export function InventoryStockTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditItem(item)}>
+                        <DropdownMenuItem onClick={() => setViewBast(b)}>
+                          <Eye className="h-3.5 w-3.5 mr-2" /> View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setPdfBast(b)}>
+                          <FileText className="h-3.5 w-3.5 mr-2" /> View PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditBast(b)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
                           onClick={() => {
-                            setDeleteItemId(item.id);
-                            setDeleteItemName(item.name);
+                            setDeleteBastId(b.id);
+                            setDeleteBastNumber(b.documentInfo.bastNumber);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
@@ -192,29 +221,45 @@ export function InventoryStockTable({
         </CardContent>
       </Card>
 
-      <InventoryItemFormDialog
+      <BASTFormDialog
         open={isAddOpen}
         onOpenChange={onAddOpenChange}
         onSuccess={handleAddSuccess}
       />
 
-      <InventoryItemFormDialog
-        open={!!editItem}
-        onOpenChange={(open) => !open && setEditItem(null)}
-        item={editItem ?? undefined}
+      <BASTFormDialog
+        open={!!editBast}
+        onOpenChange={(open) => !open && setEditBast(null)}
+        bast={editBast ?? undefined}
         onSuccess={handleEditSuccess}
       />
 
+      <BASTViewDialog
+        bast={viewBast}
+        onOpenChange={(open) => !open && setViewBast(null)}
+        onEdit={() => {
+          if (viewBast) {
+            setViewBast(null);
+            setEditBast(viewBast);
+          }
+        }}
+      />
+
+      <BASTPdfViewer
+        bast={pdfBast}
+        onOpenChange={(open) => !open && setPdfBast(null)}
+      />
+
       <AlertDialog
-        open={!!deleteItemId}
-        onOpenChange={(open) => !open && setDeleteItemId(null)}
+        open={!!deleteBastId}
+        onOpenChange={(open) => !open && setDeleteBastId(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+            <AlertDialogTitle>Delete BAST</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteItemName}</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete{" "}
+              <strong>{deleteBastNumber}</strong>? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

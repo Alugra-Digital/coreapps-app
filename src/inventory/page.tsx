@@ -3,26 +3,49 @@ import {
   Plus,
   FileDown,
   LayoutGrid,
-  TrendingDown,
   Warehouse,
+  DollarSign,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { InventoryStockTable } from "./components/InventoryStockTable";
 import { AppointmentCard } from "./components/AppointmentCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getInventoryItems } from "@/api/inventory";
+import type { InventoryItem } from "./types";
+
+function formatTotalValue(items: InventoryItem[]): string {
+  const total = items.reduce((sum, i) => sum + i.quantity * i.price, 0);
+  if (total >= 1_000_000) return `$${(total / 1_000_000).toFixed(1)}M`;
+  if (total >= 1_000) return `$${(total / 1_000).toFixed(1)}K`;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(total);
+}
 
 export default function InventoryPage() {
+  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const loadItems = async () => {
+    const data = await getInventoryItems();
+    setItems(data);
+  };
+
+  useEffect(() => {
+    loadItems();
+  }, []);
+
+  const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0);
+
   return (
     <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
       {/* Header with Quick Actions */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-foreground">
-            IT Asset Management <span className="text-2xl">💻</span>
+            IT Asset Management
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Control enterprise assets, license compliance, and service
-            deployments.
+            Control enterprise assets: Code, Name, Quantity, and Price. Add, edit, and delete assets.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -32,46 +55,51 @@ export default function InventoryPage() {
           >
             <FileDown className="h-4 w-4" /> Export Assets
           </Button>
-          <Button className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all">
-            <Plus className="h-4 w-4" /> Assign New Asset
+          <Button
+            className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
+            onClick={() => setIsAddOpen(true)}
+          >
+            <Plus className="h-4 w-4" /> Add Asset
           </Button>
         </div>
       </div>
 
-      {/* Overview Cards (Mirroring Finance Style) */}
+      {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <InventorySummaryCard
-          title="Total Managed Assets"
-          value="4,821"
-          description="Enterprise hardware & IoT nodes"
+          title="Total Assets"
+          value={String(items.length)}
+          description="Asset types"
           icon={<Package className="h-4 w-4" />}
           color="#3b82f6"
         />
         <InventorySummaryCard
-          title="Critical Software Risks"
-          value="07"
-          description="Licenses nearing expiration"
-          icon={<TrendingDown className="h-4 w-4" />}
-          color="#f59e0b"
-          badge="Audit Alert"
-        />
-        <InventorySummaryCard
-          title="Leasing Optimization"
-          value="82%"
-          description="Equipment utilization rate"
+          title="Total Units"
+          value={String(totalUnits)}
+          description="Total quantity across all assets"
           icon={<Warehouse className="h-4 w-4" />}
           color="#10b981"
+        />
+        <InventorySummaryCard
+          title="Total Value"
+          value={formatTotalValue(items)}
+          description="Quantity × Price"
+          icon={<DollarSign className="h-4 w-4" />}
+          color="#f59e0b"
         />
       </div>
 
       {/* Main Content: Table & Appointments */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        {/* Compact Table */}
         <div className="xl:col-span-8">
-          <InventoryStockTable />
+          <InventoryStockTable
+            items={items}
+            onRefresh={loadItems}
+            onAddClick={() => setIsAddOpen(true)}
+            isAddOpen={isAddOpen}
+            onAddOpenChange={setIsAddOpen}
+          />
         </div>
-
-        {/* Appointment Card */}
         <div className="xl:col-span-4">
           <AppointmentCard className="h-full" />
         </div>
@@ -97,7 +125,7 @@ export default function InventoryPage() {
         <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3 px-1 mb-2">
             <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-              <TrendingDown className="h-4 w-4 text-emerald-500" />
+              <Warehouse className="h-4 w-4 text-emerald-500" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-slate-900 dark:text-foreground uppercase tracking-wider">
@@ -114,6 +142,15 @@ export default function InventoryPage() {
   );
 }
 
+interface InventorySummaryCardProps {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  badge?: string;
+}
+
 function InventorySummaryCard({
   title,
   value,
@@ -121,7 +158,7 @@ function InventorySummaryCard({
   icon,
   color,
   badge,
-}: any) {
+}: InventorySummaryCardProps) {
   return (
     <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center mb-2 px-1">

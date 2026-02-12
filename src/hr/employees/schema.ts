@@ -1,0 +1,30 @@
+import { z } from "zod";
+
+export const employeeFormSchema = z.object({
+  nik: z.string().min(1, "NIK is required"),
+  namaKaryawan: z.string().min(1, "Nama Karyawan is required"),
+  namaJabatan: z.string().min(1, "Nama Jabatan is required"),
+  tmk: z.string().optional(),
+  noKtp: z.string().optional(),
+  noKk: z.string().optional(),
+  npwp: z.string().optional(),
+  noHp: z.string().optional(),
+  email: z.union([z.string().email("Invalid email"), z.literal("")]).optional(),
+  pendidikan: z.string().optional(),
+  statusPajak: z.string().optional(),
+  statusPerkawinan: z.string().optional(),
+  jumlahAnak: z.string().optional(),
+  tempatLahir: z.string().optional(),
+  tanggalLahir: z.string().optional(),
+  jenisKelamin: z.string().optional(),
+  alamatKtp: z.string().optional(),
+  kotaKtp: z.string().optional(),
+  provinsiKtp: z.string().optional(),
+  noRek: z.string().optional(),
+  namaBank: z.string().optional(),
+  noJknKis: z.string().optional(),
+  noJms: z.string().optional(),
+  tanggalKeluar: z.string().optional(),
+});
+
+export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;

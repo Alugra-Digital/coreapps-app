@@ -1,9 +1,10 @@
 import {
-  Package,
   Search,
   MoreVertical,
+  Eye,
   Pencil,
   Trash2,
+  FolderKanban,
 } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,53 +32,64 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { InventoryItemFormDialog } from "./InventoryItemFormDialog";
-import { deleteInventoryItem } from "@/api/inventory";
-import type { InventoryItem } from "../types";
+import { ProjectFormDialog } from "./ProjectFormDialog";
+import { ProjectViewDialog } from "./ProjectViewDialog";
+import { deleteProject } from "@/api/projects";
+import type { Project } from "../types";
 
-interface InventoryStockTableProps {
-  items: InventoryItem[];
+interface ProjectTableProps {
+  projects: Project[];
   onRefresh: () => void;
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
 }
 
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
+const STATUS_LABELS: Record<string, string> = {
+  on_progress: "On Progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("id-ID", {
     style: "currency",
-    currency: "USD",
+    currency: "IDR",
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(price);
+  }).format(value);
 }
 
-export function InventoryStockTable({
-  items,
+export function ProjectTable({
+  projects,
   onRefresh,
   onAddClick,
   isAddOpen,
   onAddOpenChange,
-}: InventoryStockTableProps) {
+}: ProjectTableProps) {
   const [search, setSearch] = useState("");
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
-  const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
-  const [deleteItemName, setDeleteItemName] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [viewProject, setViewProject] = useState<Project | null>(null);
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [deleteProjectName, setDeleteProjectName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const filtered = items.filter(
-    (i) =>
-      i.code.toLowerCase().includes(search.toLowerCase()) ||
-      i.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = projects.filter((p) => {
+    const matchSearch =
+      p.identity.projectId.toLowerCase().includes(search.toLowerCase()) ||
+      p.identity.namaProject.toLowerCase().includes(search.toLowerCase()) ||
+      p.identity.clientName.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || p.identity.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   const handleDeleteConfirm = async () => {
-    if (!deleteItemId) return;
+    if (!deleteProjectId) return;
     setIsDeleting(true);
     try {
-      await deleteInventoryItem(deleteItemId);
+      await deleteProject(deleteProjectId);
       onRefresh();
-      setDeleteItemId(null);
+      setDeleteProjectId(null);
     } finally {
       setIsDeleting(false);
     }
@@ -89,7 +101,7 @@ export function InventoryStockTable({
   };
 
   const handleEditSuccess = () => {
-    setEditItem(null);
+    setEditProject(null);
     onRefresh();
   };
 
@@ -98,23 +110,33 @@ export function InventoryStockTable({
       <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
         <div className="flex justify-between items-center mb-3 px-2">
           <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-            <Package className="h-4 w-4" /> IT Asset Inventory
+            <FolderKanban className="h-4 w-4" /> Project List
           </span>
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
               <input
-                placeholder="Search code, name..."
+                placeholder="Search Project ID, Name, Client..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-1 pl-8 pr-4 text-[10px] focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none w-48 text-foreground"
               />
             </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-7 px-3 rounded-lg text-[10px] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10"
+            >
+              <option value="all">All Status</option>
+              <option value="on_progress">On Progress</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
             <Button
               className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
               onClick={onAddClick}
             >
-              Add Asset
+              Add Project
             </Button>
           </div>
         </div>
@@ -124,39 +146,63 @@ export function InventoryStockTable({
             <TableHeader className="bg-slate-50/50 dark:bg-white/5">
               <TableRow className="hover:bg-transparent border-slate-100 dark:border-white/5">
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Code
+                  Project ID
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Name
+                  Nama Project
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Quantity
+                  Client
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Price
+                  PM
+                </TableHead>
+                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  Status
+                </TableHead>
+                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                  Profit/Loss
                 </TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((item) => (
+              {filtered.map((p) => (
                 <TableRow
-                  key={item.id}
+                  key={p.id}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
                 >
                   <TableCell className="py-3">
                     <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                      {item.code}
+                      {p.identity.projectId}
                     </span>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.name}
+                    {p.identity.namaProject}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {item.quantity}
+                    {p.identity.clientName}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {formatPrice(item.price)}
+                    {p.identity.projectManagerName || "-"}
+                  </TableCell>
+                  <TableCell className="py-3">
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        p.identity.status === "completed"
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+                          : p.identity.status === "on_progress"
+                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500"
+                            : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
+                      {STATUS_LABELS[p.identity.status] ?? p.identity.status}
+                    </span>
+                  </TableCell>
+                  <TableCell
+                    className={`py-3 text-xs font-medium ${p.finance.profitLoss >= 0 ? "text-emerald-600" : "text-red-600"}`}
+                  >
+                    {formatCurrency(p.finance.profitLoss)}
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <DropdownMenu>
@@ -170,14 +216,17 @@ export function InventoryStockTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditItem(item)}>
+                        <DropdownMenuItem onClick={() => setViewProject(p)}>
+                          <Eye className="h-3.5 w-3.5 mr-2" /> View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditProject(p)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           variant="destructive"
                           onClick={() => {
-                            setDeleteItemId(item.id);
-                            setDeleteItemName(item.name);
+                            setDeleteProjectId(p.id);
+                            setDeleteProjectName(p.identity.namaProject);
                           }}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
@@ -192,29 +241,40 @@ export function InventoryStockTable({
         </CardContent>
       </Card>
 
-      <InventoryItemFormDialog
+      <ProjectFormDialog
         open={isAddOpen}
         onOpenChange={onAddOpenChange}
         onSuccess={handleAddSuccess}
       />
 
-      <InventoryItemFormDialog
-        open={!!editItem}
-        onOpenChange={(open) => !open && setEditItem(null)}
-        item={editItem ?? undefined}
+      <ProjectFormDialog
+        open={!!editProject}
+        onOpenChange={(open) => !open && setEditProject(null)}
+        project={editProject ?? undefined}
         onSuccess={handleEditSuccess}
       />
 
+      <ProjectViewDialog
+        project={viewProject}
+        onOpenChange={(open) => !open && setViewProject(null)}
+        onEdit={() => {
+          if (viewProject) {
+            setViewProject(null);
+            setEditProject(viewProject);
+          }
+        }}
+      />
+
       <AlertDialog
-        open={!!deleteItemId}
-        onOpenChange={(open) => !open && setDeleteItemId(null)}
+        open={!!deleteProjectId}
+        onOpenChange={(open) => !open && setDeleteProjectId(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Asset</AlertDialogTitle>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteItemName}</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete <strong>{deleteProjectName}</strong>? This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
