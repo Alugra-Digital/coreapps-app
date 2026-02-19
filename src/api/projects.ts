@@ -1,6 +1,6 @@
 /**
  * Project API service.
- * Uses mock implementation; swap with api.get/post/put/delete when backend is ready.
+ * Uses real backend API.
  */
 
 import type {
@@ -8,92 +8,40 @@ import type {
   ProjectCreateInput,
   ProjectUpdateInput,
 } from "@/project/types";
-import { mockProjects } from "@/project/data";
+import { api } from "@/lib/api/client";
 
-let projectsStore: Project[] = [...mockProjects];
-
-function computeProfitLoss(income: number, expense: number): number {
-  return income - expense;
-}
-
-/**
- * Get all projects.
- * API: GET /projects
- */
 export async function getProjects(): Promise<Project[]> {
-  return Promise.resolve([...projectsStore]);
+  return api.get<Project[]>("/api/finance/projects");
 }
 
-/**
- * Get project by ID.
- * API: GET /projects/:id
- */
 export async function getProjectById(id: string): Promise<Project | null> {
-  const project = projectsStore.find((p) => p.id === id);
-  return Promise.resolve(project ?? null);
+  try {
+    return await api.get<Project>(`/api/finance/projects/${id}`);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Create project.
- * API: POST /projects
- */
 export async function createProject(input: ProjectCreateInput): Promise<Project> {
-  const id = `PRJ-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const now = new Date().toISOString();
-  const profitLoss = computeProfitLoss(input.finance.income, input.finance.expense);
-  const project: Project = {
-    ...input,
-    id,
-    finance: {
-      ...input.finance,
-      profitLoss,
-    },
-    createdAt: now,
-    updatedAt: now,
-  };
-  projectsStore.push(project);
-  return Promise.resolve(project);
+  return api.post<Project>("/api/finance/projects", input);
 }
 
-/**
- * Update project.
- * API: PUT /projects/:id
- */
 export async function updateProject(
   id: string,
   input: ProjectUpdateInput
 ): Promise<Project | null> {
-  const index = projectsStore.findIndex((p) => p.id === id);
-  if (index === -1) return Promise.resolve(null);
-
-  const existing = projectsStore[index];
-  const merged = { ...existing, ...input };
-
-  if (input.finance) {
-    merged.finance = {
-      ...existing.finance,
-      ...input.finance,
-      profitLoss: computeProfitLoss(
-        input.finance.income ?? existing.finance.income,
-        input.finance.expense ?? existing.finance.expense
-      ),
-    };
+  try {
+    return await api.put<Project>(`/api/finance/projects/${id}`, input);
+  } catch {
+    return null;
   }
-
-  projectsStore[index] = {
-    ...merged,
-    updatedAt: new Date().toISOString(),
-  };
-  return Promise.resolve(projectsStore[index]);
 }
 
-/**
- * Delete project.
- * API: DELETE /projects/:id
- */
 export async function deleteProject(id: string): Promise<boolean> {
-  const index = projectsStore.findIndex((p) => p.id === id);
-  if (index === -1) return Promise.resolve(false);
-  projectsStore.splice(index, 1);
-  return Promise.resolve(true);
+  try {
+    await api.delete(`/api/finance/projects/${id}`);
+    return true;
+  } catch {
+    return false;
+  }
 }

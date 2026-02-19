@@ -24,6 +24,8 @@ import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { roleFormSchema, type RoleFormValues } from "../schema";
 import { createRole, updateRole } from "@/api/roles";
+import type { ApiError } from "@/lib/api/client";
+import { toast } from "sonner";
 import type { Role } from "../types";
 import { MAIN_NAV_MENU } from "@/lib/menuConfig";
 
@@ -92,20 +94,30 @@ export function RoleFormDialog({
   }, [role, open, form]);
 
   const onSubmit = async (values: RoleFormValues) => {
-    const payload = {
-      code: values.code,
-      name: values.name,
-      description: values.description || undefined,
-      permissionKeys: values.permissionKeys,
-      isActive: values.isActive,
-    };
+    try {
+      const payload = {
+        code: values.code,
+        name: values.name,
+        description: values.description || undefined,
+        permissionKeys: values.permissionKeys,
+        isActive: values.isActive,
+      };
 
-    if (isEdit && role) {
-      await updateRole(role.id, payload);
-    } else {
-      await createRole(payload);
+      if (isEdit && role) {
+        await updateRole(role.id, payload);
+      } else {
+        await createRole(payload);
+      }
+      onSuccess();
+    } catch (err) {
+      const apiErr = err as ApiError;
+      toast.error(apiErr.message ?? "An error occurred");
+      if (Array.isArray(apiErr.errors)) {
+        for (const { field, message } of apiErr.errors) {
+          form.setError(field as keyof RoleFormValues, { message });
+        }
+      }
     }
-    onSuccess();
   };
 
   return (
@@ -194,7 +206,7 @@ export function RoleFormDialog({
                             />
                             <label
                               htmlFor={`perm-${opt.key}`}
-                              className="text-sm font-medium leading-none cursor-pointer"
+                              className="text-sm font-medium leading-none cursor-pointer text-foreground"
                             >
                               {opt.label}
                             </label>

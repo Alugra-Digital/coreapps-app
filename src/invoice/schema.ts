@@ -13,6 +13,7 @@ const lineItemSchema = z.object({
   unit: z.string().min(1, "Unit is required"),
   price: z.number().min(0, "Price must be >= 0"),
   subtotal: z.number().min(0),
+  dpp: z.number().min(0).optional(),
   taxRate: z.number().min(0).max(100).optional(),
   taxAmount: z.number().min(0).optional(),
   priceAfterTax: z.number().min(0).optional(),

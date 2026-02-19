@@ -1,49 +1,36 @@
 /**
  * Roles API service.
- * Mock implementation; replace with real API when backend is ready.
+ * Uses real backend API.
  */
 
 import type { Role, RoleCreateInput, RoleUpdateInput } from "@/access-control/roles/types";
-import { mockRoles } from "@/access-control/roles/data";
-
-let rolesStore: Role[] = [...mockRoles];
+import { api } from "@/lib/api/client";
 
 export async function getRoles(): Promise<Role[]> {
-  return Promise.resolve([...rolesStore]);
+  return api.get<Role[]>("/api/roles");
 }
 
 export async function getRoleById(id: string): Promise<Role | null> {
-  const role = rolesStore.find((r) => r.id === id);
-  return Promise.resolve(role ?? null);
+  try {
+    return await api.get<Role>(`/api/roles/${id}`);
+  } catch {
+    return null;
+  }
 }
 
 export async function createRole(input: RoleCreateInput): Promise<Role> {
-  const id = `role-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const now = new Date().toISOString();
-  const role: Role = {
-    ...input,
-    id,
-    createdAt: now,
-    updatedAt: now,
-  };
-  rolesStore.push(role);
-  return Promise.resolve(role);
+  return api.post<Role>("/api/roles", input);
 }
 
-export async function updateRole(id: string, input: RoleUpdateInput): Promise<Role | null> {
-  const index = rolesStore.findIndex((r) => r.id === id);
-  if (index === -1) return Promise.resolve(null);
-  rolesStore[index] = {
-    ...rolesStore[index],
-    ...input,
-    updatedAt: new Date().toISOString(),
-  };
-  return Promise.resolve(rolesStore[index]);
+export async function updateRole(id: string, input: RoleUpdateInput): Promise<Role> {
+  return api.put<Role>(`/api/roles/${id}`, input);
 }
 
 export async function deleteRole(id: string): Promise<boolean> {
-  const index = rolesStore.findIndex((r) => r.id === id);
-  if (index === -1) return Promise.resolve(false);
-  rolesStore.splice(index, 1);
-  return Promise.resolve(true);
+  try {
+    await api.delete(`/api/roles/${id}`);
+    return true;
+  } catch {
+    return false;
+  }
 }

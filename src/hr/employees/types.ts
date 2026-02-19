@@ -1,6 +1,6 @@
 export const NAMA_JABATAN = [
   "DIREKTUR",
-  "Manajemen Opration",
+  "Manajemen Operation",
   "Project Manager",
   "SA",
   "Secretary Office",
@@ -37,7 +37,8 @@ export interface Employee {
   id: string;
   nik: string;
   namaKaryawan: string;
-  namaJabatan: NamaJabatan;
+  /** Position name from Positions master (backward compatible with NamaJabatan values) */
+  namaJabatan: string;
   tmk?: string;
   noKtp?: string;
   noKk?: string;
@@ -59,6 +60,11 @@ export interface Employee {
   noJknKis?: string;
   noJms?: string;
   tanggalKeluar?: string;
+  /** Document URLs (base64 data URL for mock; file URL for real backend) */
+  profilePictureUrl?: string;
+  ktpDocumentUrl?: string;
+  kkDocumentUrl?: string;
+  npwpDocumentUrl?: string;
 }
 
 export type EmployeeCreateInput = Omit<Employee, "id">;

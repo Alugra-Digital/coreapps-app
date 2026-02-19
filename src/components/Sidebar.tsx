@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePermissions, useAuth } from "@/contexts/AuthContext";
 import { MAIN_NAV_MENU, type MenuItemConfig } from "@/lib/menuConfig";
+import { hasPermission } from "@/lib/rbac";
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -31,9 +32,9 @@ function filterMenuByPermissions(
 ): MenuItemConfig[] {
   if (permissions.length === 0) return [];
   return menu.filter((item) => {
-    const hasParent = permissions.includes(item.permissionKey);
+    const hasParent = hasPermission(permissions, item.permissionKey);
     const allowedChildren =
-      item.children?.filter((c) => permissions.includes(c.permissionKey)) ?? [];
+      item.children?.filter((c) => hasPermission(permissions, c.permissionKey)) ?? [];
     if (item.children?.length) {
       return hasParent || allowedChildren.length > 0;
     }
@@ -45,7 +46,7 @@ export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const permissions = usePermissions();
-  const { currentUser, isLoading } = useAuth();
+  const { currentUser, isLoading, logout } = useAuth();
 
   const mainNavItems = useMemo(
     () => (isLoading ? MAIN_NAV_MENU : filterMenuByPermissions(MAIN_NAV_MENU, permissions)),
@@ -102,9 +103,11 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
 
           {mainNavItems.map((item) => {
+            const hasParent = hasPermission(permissions, item.permissionKey);
             const allowedChildren =
-              item.children?.filter((c) => permissions.includes(c.permissionKey)) ?? [];
-            const hasChildren = allowedChildren.length > 0;
+              item.children?.filter((c) => hasPermission(permissions, c.permissionKey)) ?? [];
+            const childrenToShow = hasParent ? (item.children ?? []) : allowedChildren;
+            const hasChildren = childrenToShow.length > 0;
             const isParentActive =
               item.children?.some((c) => location.pathname === c.path) ??
               location.pathname.startsWith(item.path);
@@ -119,12 +122,12 @@ export function Sidebar({ className }: SidebarProps) {
                   hasChevron={hasChildren}
                   active={isParentActive}
                 >
-                  {allowedChildren.map((child, idx) => (
+                  {childrenToShow.map((child, idx) => (
                     <SidebarSubItem
                       key={child.permissionKey}
                       to={child.path}
                       label={child.label}
-                      isLast={idx === allowedChildren.length - 1}
+                      isLast={idx === childrenToShow.length - 1}
                       active={location.pathname === child.path}
                     />
                   ))}
@@ -237,7 +240,10 @@ export function Sidebar({ className }: SidebarProps) {
         </Link>
         <Button
           variant="ghost"
-          onClick={() => navigate("/login")}
+          onClick={() => {
+            logout();
+            navigate("/login");
+          }}
           className="w-full justify-start gap-3 px-3 h-10 font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 mt-2 rounded-xl transition-all"
         >
           <LogOut className="h-[18px] w-[18px]" />

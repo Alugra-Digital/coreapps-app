@@ -31,7 +31,7 @@ export interface BillingInfo {
   pic: BillingPic;
 }
 
-/** Line item - No, Item, Qty, Unit, Price, Subtotal, Tax, Price After Tax */
+/** Line item - No, Item, Qty, Unit, Price, Subtotal, DPP, Tax, Price After Tax */
 export interface InvoiceLineItem {
   number: number;
   itemDescription: string;
@@ -39,6 +39,7 @@ export interface InvoiceLineItem {
   unit: string;
   price: number;
   subtotal: number;
+  dpp?: number;
   taxRate?: number;
   taxAmount?: number;
   priceAfterTax?: number;

@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Upload, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -36,17 +36,18 @@ import {
 } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   employeeFormSchema,
   type EmployeeFormValues,
 } from "../schema";
 import {
-  NAMA_JABATAN,
   STATUS_PAJAK,
   STATUS_PERKAWINAN,
   JENIS_KELAMIN,
 } from "../types";
 import { createEmployee, updateEmployee } from "@/api/employees";
+import { getPositions } from "@/api/positions";
 import type { Employee } from "../types";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +83,20 @@ const defaultValues: EmployeeFormValues = {
   noJknKis: "",
   noJms: "",
   tanggalKeluar: "",
+  profilePictureUrl: "",
+  ktpDocumentUrl: "",
+  kkDocumentUrl: "",
+  npwpDocumentUrl: "",
 };
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export function EmployeeFormDialog({
   open,
@@ -91,6 +105,21 @@ export function EmployeeFormDialog({
   onSuccess,
 }: EmployeeFormDialogProps) {
   const isEdit = !!employee;
+  const [positionOptions, setPositionOptions] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      getPositions().then((positions) => {
+        const opts = positions
+          .filter((p) => p.isActive)
+          .map((p) => ({ value: p.name, label: p.name }));
+        if (isEdit && employee?.namaJabatan && !opts.some((o) => o.value === employee.namaJabatan)) {
+          opts.push({ value: employee.namaJabatan, label: employee.namaJabatan });
+        }
+        setPositionOptions(opts);
+      });
+    }
+  }, [open, isEdit, employee?.namaJabatan]);
 
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
@@ -124,6 +153,10 @@ export function EmployeeFormDialog({
         noJknKis: employee.noJknKis ?? "",
         noJms: employee.noJms ?? "",
         tanggalKeluar: employee.tanggalKeluar ?? "",
+        profilePictureUrl: employee.profilePictureUrl ?? "",
+        ktpDocumentUrl: employee.ktpDocumentUrl ?? "",
+        kkDocumentUrl: employee.kkDocumentUrl ?? "",
+        npwpDocumentUrl: employee.npwpDocumentUrl ?? "",
       });
     } else {
       form.reset(defaultValues);
@@ -142,7 +175,7 @@ export function EmployeeFormDialog({
     const payload = {
       nik: values.nik,
       namaKaryawan: values.namaKaryawan,
-      namaJabatan: values.namaJabatan as Employee["namaJabatan"],
+      namaJabatan: values.namaJabatan,
       tmk: values.tmk || undefined,
       noKtp: values.noKtp || undefined,
       noKk: values.noKk || undefined,
@@ -164,6 +197,10 @@ export function EmployeeFormDialog({
       noJknKis: values.noJknKis || undefined,
       noJms: values.noJms || undefined,
       tanggalKeluar: values.tanggalKeluar || undefined,
+      profilePictureUrl: values.profilePictureUrl || undefined,
+      ktpDocumentUrl: values.ktpDocumentUrl || undefined,
+      kkDocumentUrl: values.kkDocumentUrl || undefined,
+      npwpDocumentUrl: values.npwpDocumentUrl || undefined,
     };
 
     if (isEdit && employee) {
@@ -194,6 +231,61 @@ export function EmployeeFormDialog({
 
               <ScrollArea className="flex-1 px-6 pb-4">
                 <TabsContent value="personal" className="mt-0 space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="profilePictureUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Profile Picture</FormLabel>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-16 w-16 rounded-lg border">
+                            {field.value ? (
+                              <img src={field.value} alt="Profile" className="h-full w-full object-cover rounded-lg" />
+                            ) : (
+                              <AvatarFallback className="rounded-lg bg-slate-100 dark:bg-white/5">
+                                <Upload className="h-6 w-6 text-slate-400" />
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                          <div className="flex flex-col gap-1">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              id="profile-pic-upload"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  field.onChange(await fileToDataUrl(file));
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() => document.getElementById("profile-pic-upload")?.click()}
+                            >
+                              Upload
+                            </Button>
+                            {field.value && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-xs text-destructive"
+                                onClick={() => field.onChange("")}
+                              >
+                                <X className="h-3 w-3 mr-1" /> Remove
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="nik"
@@ -233,9 +325,9 @@ export function EmployeeFormDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {NAMA_JABATAN.map((j) => (
-                              <SelectItem key={j} value={j}>
-                                {j}
+                            {positionOptions.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {opt.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -358,6 +450,48 @@ export function EmployeeFormDialog({
                   />
                   <FormField
                     control={form.control}
+                    name="ktpDocumentUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">KTP Document</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*,.pdf"
+                            className="hidden"
+                            id="ktp-upload"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) field.onChange(await fileToDataUrl(file));
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => document.getElementById("ktp-upload")?.click()}
+                          >
+                            <Upload className="h-3 w-3 mr-1" /> Upload KTP
+                          </Button>
+                          {field.value && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs text-destructive"
+                              onClick={() => field.onChange("")}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="noKk"
                     render={({ field }) => (
                       <FormItem>
@@ -371,6 +505,48 @@ export function EmployeeFormDialog({
                   />
                   <FormField
                     control={form.control}
+                    name="kkDocumentUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">KK Document</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*,.pdf"
+                            className="hidden"
+                            id="kk-upload"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) field.onChange(await fileToDataUrl(file));
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => document.getElementById("kk-upload")?.click()}
+                          >
+                            <Upload className="h-3 w-3 mr-1" /> Upload KK
+                          </Button>
+                          {field.value && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs text-destructive"
+                              onClick={() => field.onChange("")}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="npwp"
                     render={({ field }) => (
                       <FormItem>
@@ -378,6 +554,48 @@ export function EmployeeFormDialog({
                         <FormControl>
                           <Input {...field} className="h-9 text-sm" />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="npwpDocumentUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">NPWP Document</FormLabel>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            accept="image/*,.pdf"
+                            className="hidden"
+                            id="npwp-upload"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) field.onChange(await fileToDataUrl(file));
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => document.getElementById("npwp-upload")?.click()}
+                          >
+                            <Upload className="h-3 w-3 mr-1" /> Upload NPWP
+                          </Button>
+                          {field.value && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs text-destructive"
+                              onClick={() => field.onChange("")}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}

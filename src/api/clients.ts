@@ -1,26 +1,64 @@
 /**
  * Clients API service.
- * Uses mock implementation; swap with api.get when backend is ready.
- * Minimal API for client dropdown in Project form.
+ * Uses real backend API.
  */
 
-export interface Client {
-  id: string;
-  name: string;
+export type { Client } from "@/finance/clients/types";
+
+import type {
+  Client,
+  ClientCreateInput,
+  ClientUpdateInput,
+} from "@/finance/clients/types";
+import { api } from "@/lib/api/client";
+import type { PaginatedResponse } from "@/lib/api/pagination";
+
+export async function getClients(): Promise<Client[]> {
+  const res = await api.get<Client[] | PaginatedResponse<Client>>("/api/finance/clients");
+  return Array.isArray(res) ? res : res.data;
 }
 
-const mockClients: Client[] = [
-  { id: "C001", name: "PT Bank Mandiri" },
-  { id: "C002", name: "PT Pertamina" },
-  { id: "C003", name: "PT Telkomsel" },
-  { id: "C004", name: "Toyota Astra" },
-  { id: "C005", name: "Unilever Indonesia" },
-];
+export interface GetClientsParams {
+  page?: number;
+  limit?: number;
+}
 
-/**
- * Get all clients.
- * API: GET /clients
- */
-export async function getClients(): Promise<Client[]> {
-  return Promise.resolve([...mockClients]);
+export async function getClientsPaginated(
+  params: GetClientsParams = {}
+): Promise<PaginatedResponse<Client>> {
+  const { page = 1, limit = 10 } = params;
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  return api.get<PaginatedResponse<Client>>(`/api/finance/clients?${query}`);
+}
+
+export async function getClientById(id: string): Promise<Client | null> {
+  try {
+    return await api.get<Client>(`/api/finance/clients/${id}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function createClient(input: ClientCreateInput): Promise<Client> {
+  return api.post<Client>("/api/finance/clients", input);
+}
+
+export async function updateClient(
+  id: string,
+  input: ClientUpdateInput
+): Promise<Client | null> {
+  try {
+    return await api.put<Client>(`/api/finance/clients/${id}`, input);
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteClient(id: string): Promise<boolean> {
+  try {
+    await api.delete(`/api/finance/clients/${id}`);
+    return true;
+  } catch {
+    return false;
+  }
 }

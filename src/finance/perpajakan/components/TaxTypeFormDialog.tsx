@@ -259,7 +259,7 @@ export function TaxTypeFormDialog({
                             />
                             <label
                               htmlFor={`doc-${opt.value}`}
-                              className="text-sm font-medium leading-none cursor-pointer"
+                              className="text-sm font-medium leading-none cursor-pointer text-foreground"
                             >
                               {opt.label}
                             </label>

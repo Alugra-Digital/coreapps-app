@@ -133,6 +133,7 @@ export function InvoiceViewDialog({
                       <th className="text-left p-2 text-[10px] font-bold text-slate-500">Unit</th>
                       <th className="text-right p-2 text-[10px] font-bold text-slate-500">Price</th>
                       <th className="text-right p-2 text-[10px] font-bold text-slate-500">Subtotal</th>
+                      <th className="text-right p-2 text-[10px] font-bold text-slate-500">DPP</th>
                       <th className="text-right p-2 text-[10px] font-bold text-slate-500">Tax</th>
                       <th className="text-right p-2 text-[10px] font-bold text-slate-500">Total</th>
                     </tr>
@@ -146,6 +147,9 @@ export function InvoiceViewDialog({
                         <td className="p-2">{item.unit}</td>
                         <td className="p-2 text-right">{formatCurrency(item.price)}</td>
                         <td className="p-2 text-right">{formatCurrency(item.subtotal)}</td>
+                        <td className="p-2 text-right">
+                          {formatCurrency(item.dpp ?? (11 / 12) * (item.subtotal ?? 0))}
+                        </td>
                         <td className="p-2 text-right">
                           {item.taxRate ? `${item.taxRate}%` : "-"} /{" "}
                           {formatCurrency(item.taxAmount ?? 0)}

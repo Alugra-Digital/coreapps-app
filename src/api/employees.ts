@@ -1,70 +1,81 @@
 /**
  * Employee API service.
- * Uses mock implementation; swap with api.get/post/put/delete when backend is ready.
+ * Uses real backend API.
  */
 
 import type { Employee, EmployeeCreateInput, EmployeeUpdateInput } from "@/hr/employees/types";
-import { mockEmployees } from "@/hr/employees/data";
+import { api } from "@/lib/api/client";
 
-// In-memory store for mock mode (mirrors backend state)
-let employeesStore: Employee[] = [...mockEmployees];
-
-/**
- * Get all employees.
- * API: GET /employees
- */
 export async function getEmployees(): Promise<Employee[]> {
-  // When backend ready: return api.get<Employee[]>("/employees");
-  return Promise.resolve([...employeesStore]);
+  const res = await api.get<Employee[] | { data: Employee[] }>("/api/hr/employees");
+  return Array.isArray(res) ? res : res.data;
 }
 
-/**
- * Get employee by ID.
- * API: GET /employees/:id
- */
 export async function getEmployeeById(id: string): Promise<Employee | null> {
-  // When backend ready: return api.get<Employee>(`/employees/${id}`);
-  const emp = employeesStore.find((e) => e.id === id);
-  return Promise.resolve(emp ?? null);
+  try {
+    return await api.get<Employee>(`/api/hr/employees/${id}`);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Create employee.
- * API: POST /employees
- */
-export async function createEmployee(
-  input: EmployeeCreateInput
-): Promise<Employee> {
-  // When backend ready: return api.post<Employee>("/employees", input);
-  const id = `EMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const employee: Employee = { ...input, id };
-  employeesStore.push(employee);
-  return Promise.resolve(employee);
+export async function createEmployee(input: EmployeeCreateInput): Promise<Employee> {
+  return api.post<Employee>("/api/hr/employees", input);
 }
 
-/**
- * Update employee.
- * API: PUT /employees/:id
- */
 export async function updateEmployee(
   id: string,
   input: EmployeeUpdateInput
 ): Promise<Employee | null> {
-  // When backend ready: return api.put<Employee>(`/employees/${id}`, input);
-  const index = employeesStore.findIndex((e) => e.id === id);
-  if (index === -1) return Promise.resolve(null);
-  employeesStore[index] = { ...employeesStore[index], ...input };
-  return Promise.resolve(employeesStore[index]);
+  try {
+    return await api.put<Employee>(`/api/hr/employees/${id}`, input);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Delete employee.
- * API: DELETE /employees/:id
- */
 export async function deleteEmployee(id: string): Promise<boolean> {
-  // When backend ready: await api.delete(`/employees/${id}`); return true;
-  const index = employeesStore.findIndex((e) => e.id === id);
-  if (index === -1) return Promise.resolve(false);
-  employeesStore.splice(index, 1);
-  return Promise.resolve(true);
+  try {
+    await api.delete(`/api/hr/employees/${id}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function softDeleteEmployee(id: string): Promise<Employee | null> {
+  const today = new Date().toISOString().slice(0, 10);
+  return updateEmployee(id, { tanggalKeluar: today });
+}
+
+export interface GetEmployeesParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  position?: string;
+  status?: "active" | "resigned" | "all";
+  includeResigned?: boolean;
+}
+
+export interface GetEmployeesResult {
+  data: Employee[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getEmployeesPaginated(
+  params: GetEmployeesParams = {}
+): Promise<GetEmployeesResult> {
+  const { page = 1, limit = 10, search = "", position = "", status = "active", includeResigned = false } = params;
+  const query = new URLSearchParams();
+  query.set("page", String(page));
+  query.set("limit", String(limit));
+  if (search) query.set("search", search);
+  if (position) query.set("position", position);
+  query.set("status", status);
+  query.set("includeResigned", String(includeResigned));
+  const res = await api.get<GetEmployeesResult>(`/api/hr/employees?${query}`);
+  return res;
 }

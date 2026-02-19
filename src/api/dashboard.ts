@@ -1,8 +1,9 @@
 /**
  * Dashboard API service.
- * Aggregates data from existing module APIs; backend can provide GET /api/dashboard for single-call.
+ * Tries GET /api/analytics/dashboard first; falls back to aggregating from module APIs.
  */
 
+import { api } from "@/lib/api/client";
 import { getProjects } from "./projects";
 import { getInvoices } from "./invoices";
 import { getPurchaseOrders } from "./purchase-orders";
@@ -45,6 +46,13 @@ function getInvoiceTotal(invoice: { lineItems: { priceAfterTax?: number; subtota
 }
 
 export async function getDashboardData(): Promise<DashboardSummary> {
+  try {
+    const res = await api.get<DashboardSummary>("/api/analytics/dashboard");
+    if (res?.metrics) return res;
+  } catch {
+    // Fall through to aggregation
+  }
+
   const [projects, invoices, purchaseOrders, proposals, basts, employees, taxTypes] =
     await Promise.all([
       getProjects().catch(() => []),

@@ -1,79 +1,47 @@
 /**
  * BAST API service.
- * Uses mock implementation; swap with api.get/post/put/delete when backend is ready.
+ * Uses real backend API.
  */
 
 import type { BAST, BASTCreateInput, BASTUpdateInput } from "@/finance/bast/types";
-import { mockBasts } from "@/finance/bast/data";
+import { api } from "@/lib/api/client";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
-let bastsStore: BAST[] = [...mockBasts];
-
-/**
- * Get all BASTs.
- * API: GET /basts
- */
 export async function getBasts(): Promise<BAST[]> {
-  return Promise.resolve([...bastsStore]);
+  return api.get<BAST[]>("/api/finance/basts");
 }
 
-/**
- * Get BAST by ID.
- * API: GET /basts/:id
- */
 export async function getBastById(id: string): Promise<BAST | null> {
-  const bast = bastsStore.find((b) => b.id === id);
-  return Promise.resolve(bast ?? null);
+  try {
+    return await api.get<BAST>(`/api/finance/basts/${id}`);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Create BAST.
- * API: POST /basts
- */
 export async function createBast(input: BASTCreateInput): Promise<BAST> {
-  const id = `BAST-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const now = new Date().toISOString();
-  const bast: BAST = {
-    ...input,
-    id,
-    createdAt: now,
-    updatedAt: now,
-  };
-  bastsStore.push(bast);
-  return Promise.resolve(bast);
+  return api.post<BAST>("/api/finance/basts", input);
 }
 
-/**
- * Update BAST.
- * API: PUT /basts/:id
- */
 export async function updateBast(id: string, input: BASTUpdateInput): Promise<BAST | null> {
-  const index = bastsStore.findIndex((b) => b.id === id);
-  if (index === -1) return Promise.resolve(null);
-  bastsStore[index] = {
-    ...bastsStore[index],
-    ...input,
-    updatedAt: new Date().toISOString(),
-  };
-  return Promise.resolve(bastsStore[index]);
+  try {
+    return await api.put<BAST>(`/api/finance/basts/${id}`, input);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Delete BAST.
- * API: DELETE /basts/:id
- */
 export async function deleteBast(id: string): Promise<boolean> {
-  const index = bastsStore.findIndex((b) => b.id === id);
-  if (index === -1) return Promise.resolve(false);
-  bastsStore.splice(index, 1);
-  return Promise.resolve(true);
+  try {
+    await api.delete(`/api/finance/basts/${id}`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-/**
- * Get PDF URL for BAST (for iframe display).
- * API: GET /basts/:id/pdf
- */
 export function getBastPdfUrl(id: string): string {
-  return `${API_BASE_URL}/basts/${id}/pdf`;
+  const base = API_BASE_URL ? API_BASE_URL.replace(/\/$/, "") : "";
+  return `${base}/api/finance/basts/${id}/pdf`;
 }

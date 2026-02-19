@@ -1,6 +1,6 @@
-# API Mapping Documentation – Employee Module
+# API Mapping Documentation – CoreApps ERP Backend
 
-This document describes the API contract the frontend expects for the Employee module. Backend teams should implement endpoints that match this specification.
+This document describes the API contract for all backend services. **All URLs match Swagger** (`http://localhost:3000/api-docs`). Use these exact URLs for frontend integration.
 
 ---
 
@@ -8,21 +8,25 @@ This document describes the API contract the frontend expects for the Employee m
 
 | Property | Value |
 |----------|-------|
-| Base URL | `VITE_API_BASE_URL` (default: `/api`) |
+| Base URL | `http://localhost:3000` (dev) / `https://api.alugra.co.id` (prod) |
+| Swagger UI | `http://localhost:3000/api-docs` |
 | Content-Type | `application/json` |
 | Accept | `application/json` |
+| Authorization | `Bearer <token>` (for protected routes) |
+
+> **All URLs in this document match Swagger exactly.** Use these URLs for frontend integration.
 
 ---
 
-## Endpoints Overview
+## Endpoints Overview (HR – Employees)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/employees` | List all employees |
-| GET | `/api/employees/:id` | Get employee by ID |
-| POST | `/api/employees` | Create employee |
-| PUT | `/api/employees/:id` | Update employee |
-| DELETE | `/api/employees/:id` | Delete employee |
+| GET | `/api/hr/employees` | List employees (supports pagination, filters, search) |
+| GET | `/api/hr/employees/:id` | Get employee by ID |
+| POST | `/api/hr/employees` | Create employee |
+| PUT | `/api/hr/employees/:id` | Update employee (also used for soft delete: set `tanggalKeluar`) |
+| DELETE | `/api/hr/employees/:id` | Hard delete employee (frontend prefers soft delete via PUT) |
 
 ---
 
@@ -31,10 +35,38 @@ This document describes the API contract the frontend expects for the Employee m
 **Request**
 
 ```
-GET /api/employees
+GET /api/hr/employees
+GET /api/hr/employees?page=1&limit=10&search=&position=&status=active&includeResigned=false
 ```
 
+**Query Parameters**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| page | number | No | Page number (1-based). Default: 1 |
+| limit | number | No | Items per page (e.g. 10, 25, 50). Default: 10 |
+| search | string | No | Search in NIK, namaKaryawan, namaJabatan, email |
+| position | string | No | Filter by namaJabatan (exact match) |
+| status | string | No | `active` (default), `resigned`, or `all` |
+| includeResigned | boolean | No | When status=all, include resigned employees. Default: false |
+
 **Response:** `200 OK`
+
+For simple `GET /api/hr/employees` (no query params), backend may return full array. For paginated requests, backend may return:
+
+```json
+{
+  "data": [ /* Employee[] */ ],
+  "total": 84,
+  "page": 1,
+  "limit": 10,
+  "totalPages": 9
+}
+```
+
+Or a flat array when pagination params are omitted.
+
+**Response (flat array):** `200 OK`
 
 ```json
 [
@@ -78,7 +110,7 @@ GET /api/employees
 **Request**
 
 ```
-GET /api/employees/:id
+GET /api/hr/employees/:id
 ```
 
 **Path Parameters**
@@ -132,7 +164,7 @@ GET /api/employees/:id
 **Request**
 
 ```
-POST /api/employees
+POST /api/hr/employees
 Content-Type: application/json
 ```
 
@@ -195,7 +227,7 @@ Backend must return the created employee, including the generated `id`.
 **Request**
 
 ```
-PUT /api/employees/:id
+PUT /api/hr/employees/:id
 Content-Type: application/json
 ```
 
@@ -245,7 +277,7 @@ Return the full updated employee object.
 **Request**
 
 ```
-DELETE /api/employees/:id
+DELETE /api/hr/employees/:id
 ```
 
 **Path Parameters**
@@ -258,6 +290,8 @@ DELETE /api/employees/:id
 
 - No response body required.
 - Frontend treats any 2xx as success.
+
+**Note:** The frontend uses **soft delete** for marking employees as resigned. Instead of calling DELETE, it calls `PUT /api/hr/employees/:id` with `{ "tanggalKeluar": "YYYY-MM-DD" }` (current date). This preserves the employee record while marking them as resigned. Hard DELETE is available for backend use but not exposed in the main UI flow.
 
 **Error Responses**
 
@@ -298,14 +332,18 @@ DELETE /api/employees/:id
 | noJknKis | string | No | JKN/KIS number |
 | noJms | string | No | JMS number |
 | tanggalKeluar | string \| null | No | Resignation date (YYYY-MM-DD), null if active |
+| profilePictureUrl | string | No | Profile picture URL or base64 data URL |
+| ktpDocumentUrl | string | No | KTP document URL or base64 (image/PDF) |
+| kkDocumentUrl | string | No | KK document URL or base64 (image/PDF) |
+| npwpDocumentUrl | string | No | NPWP document URL or base64 (image/PDF) |
 
 ### Enums
 
-**namaJabatan** (exact values):
+**namaJabatan** (exact values; note: correct spelling is "Manajemen Operation", not "Manajemen Opration"):
 
 ```
 DIREKTUR
-Manajemen Opration
+Manajemen Operation
 Project Manager
 SA
 Secretary Office
@@ -389,14 +427,58 @@ Examples: `2020-01-15`, `1985-06-10`
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/employees` returns array of Employee
-- [ ] `GET /api/employees/:id` returns single Employee or 404
-- [ ] `POST /api/employees` accepts body without `id`, returns created Employee with `id`
-- [ ] `PUT /api/employees/:id` accepts partial body, returns updated Employee
-- [ ] `DELETE /api/employees/:id` returns 200/204 on success, 404 if not found
+- [ ] `GET /api/hr/employees` returns array of Employee (or paginated object with `data`, `total`, `page`, `limit`, `totalPages` when query params provided)
+- [ ] `GET /api/hr/employees` supports optional query params: `page`, `limit`, `search`, `position`, `status`, `includeResigned`
+- [ ] `GET /api/hr/employees/:id` returns single Employee or 404
+- [ ] `POST /api/hr/employees` accepts body without `id`, returns created Employee with `id`
+- [ ] `PUT /api/hr/employees/:id` accepts partial body (including `tanggalKeluar` for soft delete), returns updated Employee
+- [ ] `DELETE /api/hr/employees/:id` returns 200/204 on success, 404 if not found (hard delete; frontend prefers soft delete via PUT)
 - [ ] All responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
-- [ ] Enums match the values above (including "Manajemen Opration")
+- [ ] Enums match the values above (including "Manajemen Operation" – correct spelling, not "Opration")
+- [ ] Document fields `profilePictureUrl`, `ktpDocumentUrl`, `kkDocumentUrl`, `npwpDocumentUrl` supported for file uploads
+
+---
+
+# API Mapping Documentation – Position Module
+
+This document describes the API contract the frontend expects for the Position master data. Backend teams should implement endpoints that match this specification.
+
+---
+
+## Endpoints Overview
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/hr/positions` | List all positions |
+| GET | `/api/hr/positions/:id` | Get position by ID |
+| POST | `/api/hr/positions` | Create position |
+| PUT | `/api/hr/positions/:id` | Update position |
+| DELETE | `/api/hr/positions/:id` | Delete position |
+
+---
+
+## Entity Schema: Position
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | Yes (response) | Unique identifier (server-generated) |
+| name | string | Yes | Position name (e.g. DIREKTUR) |
+| code | string | No | Position code |
+| description | string | No | Description |
+| isActive | boolean | Yes | Active status |
+| createdAt | string | No | ISO 8601 datetime |
+| updatedAt | string | No | ISO 8601 datetime |
+
+---
+
+## Summary Checklist for Backend
+
+- [ ] `GET /api/hr/positions` returns array of Position
+- [ ] `GET /api/hr/positions/:id` returns single Position or 404
+- [ ] `POST /api/hr/positions` accepts body without `id`, returns created Position with `id`
+- [ ] `PUT /api/hr/positions/:id` accepts partial body, returns updated Position
+- [ ] `DELETE /api/hr/positions/:id` returns 200/204 on success
 
 ---
 
@@ -420,12 +502,12 @@ This document describes the API contract the frontend expects for the Purchase O
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/purchase-orders` | List all purchase orders |
-| GET | `/api/purchase-orders/:id` | Get purchase order by ID |
-| POST | `/api/purchase-orders` | Create purchase order |
-| PUT | `/api/purchase-orders/:id` | Update purchase order |
-| DELETE | `/api/purchase-orders/:id` | Delete purchase order |
-| GET | `/api/purchase-orders/:id/pdf` | Get PDF document (Content-Type: application/pdf) |
+| GET | `/api/finance/purchase-orders` | List all purchase orders |
+| GET | `/api/finance/purchase-orders/:id` | Get purchase order by ID |
+| POST | `/api/finance/purchase-orders` | Create purchase order |
+| PUT | `/api/finance/purchase-orders/:id` | Update purchase order |
+| DELETE | `/api/finance/purchase-orders/:id` | Delete purchase order |
+| GET | `/api/finance/purchase-orders/:id/pdf` | Get PDF document (Content-Type: application/pdf) |
 
 ---
 
@@ -434,7 +516,7 @@ This document describes the API contract the frontend expects for the Purchase O
 **Request**
 
 ```
-GET /api/purchase-orders
+GET /api/finance/purchase-orders
 ```
 
 **Response:** `200 OK`
@@ -500,7 +582,7 @@ GET /api/purchase-orders
 **Request**
 
 ```
-GET /api/purchase-orders/:id
+GET /api/finance/purchase-orders/:id
 ```
 
 **Path Parameters**
@@ -573,7 +655,7 @@ GET /api/purchase-orders/:id
 **Request**
 
 ```
-POST /api/purchase-orders
+POST /api/finance/purchase-orders
 Content-Type: application/json
 ```
 
@@ -658,7 +740,7 @@ Backend must return the created purchase order, including the generated `id`, `c
 **Request**
 
 ```
-PUT /api/purchase-orders/:id
+PUT /api/finance/purchase-orders/:id
 Content-Type: application/json
 ```
 
@@ -698,7 +780,7 @@ Return the full updated purchase order object.
 **Request**
 
 ```
-DELETE /api/purchase-orders/:id
+DELETE /api/finance/purchase-orders/:id
 ```
 
 **Path Parameters**
@@ -725,7 +807,7 @@ DELETE /api/purchase-orders/:id
 **Request**
 
 ```
-GET /api/purchase-orders/:id/pdf
+GET /api/finance/purchase-orders/:id/pdf
 ```
 
 **Path Parameters**
@@ -831,12 +913,12 @@ Same as Employee module – see Error Response Format section above.
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/purchase-orders` returns array of PurchaseOrder
-- [ ] `GET /api/purchase-orders/:id` returns single PurchaseOrder or 404
-- [ ] `POST /api/purchase-orders` accepts body without `id`, returns created PurchaseOrder with `id`, `createdAt`, `updatedAt`
-- [ ] `PUT /api/purchase-orders/:id` accepts partial body, returns updated PurchaseOrder
-- [ ] `DELETE /api/purchase-orders/:id` returns 200/204 on success, 404 if not found
-- [ ] `GET /api/purchase-orders/:id/pdf` returns PDF binary with Content-Type: application/pdf
+- [ ] `GET /api/finance/purchase-orders` returns array of PurchaseOrder
+- [ ] `GET /api/finance/purchase-orders/:id` returns single PurchaseOrder or 404
+- [ ] `POST /api/finance/purchase-orders` accepts body without `id`, returns created PurchaseOrder with `id`, `createdAt`, `updatedAt`
+- [ ] `PUT /api/finance/purchase-orders/:id` accepts partial body, returns updated PurchaseOrder
+- [ ] `DELETE /api/finance/purchase-orders/:id` returns 200/204 on success, 404 if not found
+- [ ] `GET /api/finance/purchase-orders/:id/pdf` returns PDF binary with Content-Type: application/pdf
 - [ ] All JSON responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
 
@@ -862,12 +944,12 @@ This document describes the API contract the frontend expects for the Invoice mo
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/invoices` | List all invoices |
-| GET | `/api/invoices/:id` | Get invoice by ID |
-| POST | `/api/invoices` | Create invoice |
-| PUT | `/api/invoices/:id` | Update invoice |
-| DELETE | `/api/invoices/:id` | Delete invoice |
-| GET | `/api/invoices/:id/pdf` | Get PDF document (Content-Type: application/pdf) |
+| GET | `/api/finance/invoices` | List all invoices |
+| GET | `/api/finance/invoices/:id` | Get invoice by ID |
+| POST | `/api/finance/invoices` | Create invoice |
+| PUT | `/api/finance/invoices/:id` | Update invoice |
+| DELETE | `/api/finance/invoices/:id` | Delete invoice |
+| GET | `/api/finance/invoices/:id/pdf` | Get PDF document (Content-Type: application/pdf) |
 
 ---
 
@@ -876,7 +958,7 @@ This document describes the API contract the frontend expects for the Invoice mo
 **Request**
 
 ```
-GET /api/invoices
+GET /api/finance/invoices
 ```
 
 **Response:** `200 OK`
@@ -951,7 +1033,7 @@ GET /api/invoices
 **Request**
 
 ```
-GET /api/invoices/:id
+GET /api/finance/invoices/:id
 ```
 
 **Path Parameters**
@@ -1033,7 +1115,7 @@ GET /api/invoices/:id
 **Request**
 
 ```
-POST /api/invoices
+POST /api/finance/invoices
 Content-Type: application/json
 ```
 
@@ -1127,7 +1209,7 @@ Backend must return the created invoice, including the generated `id`, `createdA
 **Request**
 
 ```
-PUT /api/invoices/:id
+PUT /api/finance/invoices/:id
 Content-Type: application/json
 ```
 
@@ -1166,7 +1248,7 @@ Return the full updated invoice object.
 **Request**
 
 ```
-DELETE /api/invoices/:id
+DELETE /api/finance/invoices/:id
 ```
 
 **Path Parameters**
@@ -1193,7 +1275,7 @@ DELETE /api/invoices/:id
 **Request**
 
 ```
-GET /api/invoices/:id/pdf
+GET /api/finance/invoices/:id/pdf
 ```
 
 **Path Parameters**
@@ -1265,6 +1347,7 @@ GET /api/invoices/:id/pdf
 | unit | string | Yes | Unit |
 | price | number | Yes | Harga |
 | subtotal | number | Yes | Subtotal (qty × price) |
+| dpp | number | No | Dasar Pengenaan Pajak: (11/12) × subtotal |
 | taxRate | number | No | Tax rate % (e.g. 11 for 11%) |
 | taxAmount | number | No | Pajak amount |
 | priceAfterTax | number | No | Harga setelah pajak |
@@ -1312,12 +1395,12 @@ Same as Employee module – see Error Response Format section above.
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/invoices` returns array of Invoice
-- [ ] `GET /api/invoices/:id` returns single Invoice or 404
-- [ ] `POST /api/invoices` accepts body without `id`, returns created Invoice with `id`, `createdAt`, `updatedAt`
-- [ ] `PUT /api/invoices/:id` accepts partial body, returns updated Invoice
-- [ ] `DELETE /api/invoices/:id` returns 200/204 on success, 404 if not found
-- [ ] `GET /api/invoices/:id/pdf` returns PDF binary with Content-Type: application/pdf
+- [ ] `GET /api/finance/invoices` returns array of Invoice
+- [ ] `GET /api/finance/invoices/:id` returns single Invoice or 404
+- [ ] `POST /api/finance/invoices` accepts body without `id`, returns created Invoice with `id`, `createdAt`, `updatedAt`
+- [ ] `PUT /api/finance/invoices/:id` accepts partial body, returns updated Invoice
+- [ ] `DELETE /api/finance/invoices/:id` returns 200/204 on success, 404 if not found
+- [ ] `GET /api/finance/invoices/:id/pdf` returns PDF binary with Content-Type: application/pdf
 - [ ] All JSON responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
 
@@ -1343,12 +1426,12 @@ This document describes the API contract the frontend expects for the BAST (Beri
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/basts` | List all BASTs |
-| GET | `/api/basts/:id` | Get BAST by ID |
-| POST | `/api/basts` | Create BAST |
-| PUT | `/api/basts/:id` | Update BAST |
-| DELETE | `/api/basts/:id` | Delete BAST |
-| GET | `/api/basts/:id/pdf` | Get PDF document (Content-Type: application/pdf) |
+| GET | `/api/finance/basts` | List all BASTs |
+| GET | `/api/finance/basts/:id` | Get BAST by ID |
+| POST | `/api/finance/basts` | Create BAST |
+| PUT | `/api/finance/basts/:id` | Update BAST |
+| DELETE | `/api/finance/basts/:id` | Delete BAST |
+| GET | `/api/finance/basts/:id/pdf` | Get PDF document (Content-Type: application/pdf) |
 
 ---
 
@@ -1357,7 +1440,7 @@ This document describes the API contract the frontend expects for the BAST (Beri
 **Request**
 
 ```
-GET /api/basts
+GET /api/finance/basts
 ```
 
 **Response:** `200 OK`
@@ -1406,7 +1489,7 @@ GET /api/basts
 **Request**
 
 ```
-GET /api/basts/:id
+GET /api/finance/basts/:id
 ```
 
 **Path Parameters**
@@ -1462,7 +1545,7 @@ GET /api/basts/:id
 **Request**
 
 ```
-POST /api/basts
+POST /api/finance/basts
 Content-Type: application/json
 ```
 
@@ -1527,7 +1610,7 @@ Backend must return the created BAST, including the generated `id`, `createdAt`,
 **Request**
 
 ```
-PUT /api/basts/:id
+PUT /api/finance/basts/:id
 Content-Type: application/json
 ```
 
@@ -1566,7 +1649,7 @@ Return the full updated BAST object.
 **Request**
 
 ```
-DELETE /api/basts/:id
+DELETE /api/finance/basts/:id
 ```
 
 **Path Parameters**
@@ -1593,7 +1676,7 @@ DELETE /api/basts/:id
 **Request**
 
 ```
-GET /api/basts/:id/pdf
+GET /api/finance/basts/:id/pdf
 ```
 
 **Path Parameters**
@@ -1667,12 +1750,12 @@ Same as Employee module – see Error Response Format section above.
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/basts` returns array of BAST
-- [ ] `GET /api/basts/:id` returns single BAST or 404
-- [ ] `POST /api/basts` accepts body without `id`, returns created BAST with `id`, `createdAt`, `updatedAt`
-- [ ] `PUT /api/basts/:id` accepts partial body, returns updated BAST
-- [ ] `DELETE /api/basts/:id` returns 200/204 on success, 404 if not found
-- [ ] `GET /api/basts/:id/pdf` returns PDF binary with Content-Type: application/pdf
+- [ ] `GET /api/finance/basts` returns array of BAST
+- [ ] `GET /api/finance/basts/:id` returns single BAST or 404
+- [ ] `POST /api/finance/basts` accepts body without `id`, returns created BAST with `id`, `createdAt`, `updatedAt`
+- [ ] `PUT /api/finance/basts/:id` accepts partial body, returns updated BAST
+- [ ] `DELETE /api/finance/basts/:id` returns 200/204 on success, 404 if not found
+- [ ] `GET /api/finance/basts/:id/pdf` returns PDF binary with Content-Type: application/pdf
 - [ ] All JSON responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
 
@@ -1698,11 +1781,11 @@ This document describes the API contract the frontend expects for the Project mo
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/projects` | List all projects |
-| GET | `/api/projects/:id` | Get project by ID |
-| POST | `/api/projects` | Create project |
-| PUT | `/api/projects/:id` | Update project |
-| DELETE | `/api/projects/:id` | Delete project |
+| GET | `/api/finance/projects` | List all projects |
+| GET | `/api/finance/projects/:id` | Get project by ID |
+| POST | `/api/finance/projects` | Create project |
+| PUT | `/api/finance/projects/:id` | Update project |
+| DELETE | `/api/finance/projects/:id` | Delete project |
 
 ---
 
@@ -1711,7 +1794,7 @@ This document describes the API contract the frontend expects for the Project mo
 **Request**
 
 ```
-GET /api/projects
+GET /api/finance/projects
 ```
 
 **Response:** `200 OK`
@@ -1768,7 +1851,7 @@ GET /api/projects
 **Request**
 
 ```
-GET /api/projects/:id
+GET /api/finance/projects/:id
 ```
 
 **Path Parameters**
@@ -1794,7 +1877,7 @@ Full Project object (same structure as list item).
 **Request**
 
 ```
-POST /api/projects
+POST /api/finance/projects
 Content-Type: application/json
 ```
 
@@ -1855,7 +1938,7 @@ Returns the created Project with `id`, `createdAt`, `updatedAt`.
 **Request**
 
 ```
-PUT /api/projects/:id
+PUT /api/finance/projects/:id
 Content-Type: application/json
 ```
 
@@ -1885,7 +1968,7 @@ Returns the full updated Project object.
 **Request**
 
 ```
-DELETE /api/projects/:id
+DELETE /api/finance/projects/:id
 ```
 
 **Path Parameters**
@@ -1981,11 +2064,11 @@ Same as Employee module – see Error Response Format section above.
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/projects` returns array of Project
-- [ ] `GET /api/projects/:id` returns single Project or 404
-- [ ] `POST /api/projects` accepts body without `id`, returns created Project with `id`, `createdAt`, `updatedAt`
-- [ ] `PUT /api/projects/:id` accepts partial body, returns updated Project
-- [ ] `DELETE /api/projects/:id` returns 200/204 on success, 404 if not found
+- [ ] `GET /api/finance/projects` returns array of Project
+- [ ] `GET /api/finance/projects/:id` returns single Project or 404
+- [ ] `POST /api/finance/projects` accepts body without `id`, returns created Project with `id`, `createdAt`, `updatedAt`
+- [ ] `PUT /api/finance/projects/:id` accepts partial body, returns updated Project
+- [ ] `DELETE /api/finance/projects/:id` returns 200/204 on success, 404 if not found
 - [ ] All JSON responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
 - [ ] `clientId` references clients table; `projectManagerId` references employees table
@@ -2012,12 +2095,12 @@ This document describes the API contract the frontend expects for the Perpajakan
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/tax-types` | List all tax types |
-| GET | `/api/tax-types/:id` | Get tax type by ID |
-| POST | `/api/tax-types` | Create tax type |
-| PUT | `/api/tax-types/:id` | Update tax type |
-| DELETE | `/api/tax-types/:id` | Delete tax type |
-| GET | `/api/tax-types/:id/pdf` | Get PDF document (regulation/certificate) for iframe display |
+| GET | `/api/finance/tax-types` | List all tax types |
+| GET | `/api/finance/tax-types/:id` | Get tax type by ID |
+| POST | `/api/finance/tax-types` | Create tax type |
+| PUT | `/api/finance/tax-types/:id` | Update tax type |
+| DELETE | `/api/finance/tax-types/:id` | Delete tax type |
+| GET | `/api/finance/tax-types/:id/pdf` | Get PDF document (regulation/certificate) for iframe display |
 
 ---
 
@@ -2026,7 +2109,7 @@ This document describes the API contract the frontend expects for the Perpajakan
 **Request**
 
 ```
-GET /api/tax-types
+GET /api/finance/tax-types
 ```
 
 **Response:** `200 OK`
@@ -2074,7 +2157,7 @@ GET /api/tax-types
 **Request**
 
 ```
-GET /api/tax-types/:id
+GET /api/finance/tax-types/:id
 ```
 
 **Path Parameters**
@@ -2115,7 +2198,7 @@ GET /api/tax-types/:id
 **Request**
 
 ```
-POST /api/tax-types
+POST /api/finance/tax-types
 Content-Type: application/json
 ```
 
@@ -2168,7 +2251,7 @@ Content-Type: application/json
 **Request**
 
 ```
-PUT /api/tax-types/:id
+PUT /api/finance/tax-types/:id
 Content-Type: application/json
 ```
 
@@ -2221,7 +2304,7 @@ Content-Type: application/json
 **Request**
 
 ```
-DELETE /api/tax-types/:id
+DELETE /api/finance/tax-types/:id
 ```
 
 **Path Parameters**
@@ -2245,7 +2328,7 @@ DELETE /api/tax-types/:id
 **Request**
 
 ```
-GET /api/tax-types/:id/pdf
+GET /api/finance/tax-types/:id/pdf
 ```
 
 **Path Parameters**
@@ -2316,12 +2399,12 @@ Same as Employee module – see Error Response Format section above.
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/tax-types` returns array of TaxType
-- [ ] `GET /api/tax-types/:id` returns single TaxType or 404
-- [ ] `POST /api/tax-types` accepts body without `id`, returns created TaxType with `id`, `createdAt`, `updatedAt`
-- [ ] `PUT /api/tax-types/:id` accepts partial body, returns updated TaxType
-- [ ] `DELETE /api/tax-types/:id` returns 200/204 on success, 404 if not found
-- [ ] `GET /api/tax-types/:id/pdf` returns PDF content or 404 when no document
+- [ ] `GET /api/finance/tax-types` returns array of TaxType
+- [ ] `GET /api/finance/tax-types/:id` returns single TaxType or 404
+- [ ] `POST /api/finance/tax-types` accepts body without `id`, returns created TaxType with `id`, `createdAt`, `updatedAt`
+- [ ] `PUT /api/finance/tax-types/:id` accepts partial body, returns updated TaxType
+- [ ] `DELETE /api/finance/tax-types/:id` returns 200/204 on success, 404 if not found
+- [ ] `GET /api/finance/tax-types/:id/pdf` returns PDF content or 404 when no document
 - [ ] All JSON responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
 
@@ -2347,12 +2430,12 @@ This document describes the API contract the frontend expects for the Proposal P
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/proposal-penawaran` | List all proposals (supports ?search=&status=&clientId=) |
-| GET | `/api/proposal-penawaran/:id` | Get proposal by ID |
-| POST | `/api/proposal-penawaran` | Create proposal |
-| PUT | `/api/proposal-penawaran/:id` | Update proposal |
-| DELETE | `/api/proposal-penawaran/:id` | Delete proposal |
-| GET | `/api/proposal-penawaran/:id/pdf` | Get PDF document for iframe view/export |
+| GET | `/api/finance/proposal-penawaran` | List all proposals (supports ?search=&status=&clientId=) |
+| GET | `/api/finance/proposal-penawaran/:id` | Get proposal by ID |
+| POST | `/api/finance/proposal-penawaran` | Create proposal |
+| PUT | `/api/finance/proposal-penawaran/:id` | Update proposal |
+| DELETE | `/api/finance/proposal-penawaran/:id` | Delete proposal |
+| GET | `/api/finance/proposal-penawaran/:id/pdf` | Get PDF document for iframe view/export |
 
 ---
 
@@ -2361,8 +2444,8 @@ This document describes the API contract the frontend expects for the Proposal P
 **Request**
 
 ```
-GET /api/proposal-penawaran
-GET /api/proposal-penawaran?search=redis&status=draft&clientId=C001
+GET /api/finance/proposal-penawaran
+GET /api/finance/proposal-penawaran?search=redis&status=draft&clientId=C001
 ```
 
 **Query Parameters**
@@ -2427,7 +2510,7 @@ GET /api/proposal-penawaran?search=redis&status=draft&clientId=C001
 **Request**
 
 ```
-GET /api/proposal-penawaran/:id
+GET /api/finance/proposal-penawaran/:id
 ```
 
 **Path Parameters**
@@ -2453,7 +2536,7 @@ Full ProposalPenawaran object (see Entity Schema below).
 **Request**
 
 ```
-POST /api/proposal-penawaran
+POST /api/finance/proposal-penawaran
 Content-Type: application/json
 ```
 
@@ -2510,7 +2593,7 @@ Returns the created ProposalPenawaran with `id`, `createdAt`, `updatedAt`.
 **Request**
 
 ```
-PUT /api/proposal-penawaran/:id
+PUT /api/finance/proposal-penawaran/:id
 Content-Type: application/json
 ```
 
@@ -2533,7 +2616,7 @@ Returns the updated ProposalPenawaran.
 **Request**
 
 ```
-DELETE /api/proposal-penawaran/:id
+DELETE /api/finance/proposal-penawaran/:id
 ```
 
 **Response:** `200 OK` or `204 No Content`
@@ -2551,7 +2634,7 @@ DELETE /api/proposal-penawaran/:id
 **Request**
 
 ```
-GET /api/proposal-penawaran/:id/pdf
+GET /api/finance/proposal-penawaran/:id/pdf
 ```
 
 **Path Parameters**
@@ -2658,14 +2741,85 @@ Same as Employee module – see Error Response Format section above.
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/proposal-penawaran` returns array of ProposalPenawaran (supports search, status, clientId filters)
-- [ ] `GET /api/proposal-penawaran/:id` returns single ProposalPenawaran or 404
-- [ ] `POST /api/proposal-penawaran` accepts body without `id`, returns created ProposalPenawaran with `id`, `createdAt`, `updatedAt`
-- [ ] `PUT /api/proposal-penawaran/:id` accepts partial body, returns updated ProposalPenawaran
-- [ ] `DELETE /api/proposal-penawaran/:id` returns 200/204 on success, 404 if not found
-- [ ] `GET /api/proposal-penawaran/:id/pdf` returns PDF content (application/pdf) for iframe display
+- [ ] `GET /api/finance/proposal-penawaran` returns array of ProposalPenawaran (supports search, status, clientId filters)
+- [ ] `GET /api/finance/proposal-penawaran/:id` returns single ProposalPenawaran or 404
+- [ ] `POST /api/finance/proposal-penawaran` accepts body without `id`, returns created ProposalPenawaran with `id`, `createdAt`, `updatedAt`
+- [ ] `PUT /api/finance/proposal-penawaran/:id` accepts partial body, returns updated ProposalPenawaran
+- [ ] `DELETE /api/finance/proposal-penawaran/:id` returns 200/204 on success, 404 if not found
+- [ ] `GET /api/finance/proposal-penawaran/:id/pdf` returns PDF content (application/pdf) for iframe display
 - [ ] All JSON responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
+
+---
+
+# API Mapping Documentation – Quotation Module
+
+This document describes the API contract the frontend expects for the Quotation module. Backend teams should implement endpoints that match this specification.
+
+---
+
+## Endpoints Overview
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/finance/quotations` | List all quotations |
+| GET | `/api/finance/quotations/:id` | Get quotation by ID |
+| POST | `/api/finance/quotations` | Create quotation |
+| PUT | `/api/finance/quotations/:id` | Update quotation |
+| DELETE | `/api/finance/quotations/:id` | Delete quotation |
+| GET | `/api/finance/quotations/:id/pdf` | Get PDF document (Content-Type: application/pdf) |
+
+---
+
+## Entity Schema: Quotation
+
+### QuotationLineItem
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| number | number | Yes | Nomor urut |
+| description | string | Yes | Item deskripsi |
+| quantity | number | Yes | Kuantitas |
+| unit | string | Yes | Unit |
+| unitPrice | number | Yes | Harga per unit |
+| subtotal | number | Yes | subtotal (qty * unitPrice) |
+
+### Quotation
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | Yes (response) | Unique identifier (server-generated) |
+| quotationNumber | string | Yes | No. Quotation |
+| quotationDate | string | Yes | Tanggal Quotation (YYYY-MM-DD) |
+| validUntil | string | No | Tanggal Kadaluarsa (YYYY-MM-DD) |
+| clientId | string | Yes | FK to clients |
+| clientName | string | Yes | Denormalized client name |
+| projectId | string | No | FK to projects |
+| projectName | string | No | Denormalized project name |
+| serviceOffered | string | Yes | Kelompok Jasa |
+| quotationMonth | string | Yes | Bulan Quotation |
+| lineItems | QuotationLineItem[] | Yes | Detail Penawaran |
+| subtotal | number | Yes | Subtotal |
+| taxAmount | number | Yes | Nilai Pajak |
+| taxTypeId | string | No | FK to tax_types |
+| grandTotal | number | Yes | Total Akhir |
+| paymentTerms | string | No | Syarat Pembayaran |
+| validityPeriod | string | No | Masa Berlaku |
+| termsConditions | string | No | Syarat & Ketentuan |
+| status | string | Yes | draft, sent, accepted, rejected, expired |
+| createdAt | string | No | ISO 8601 datetime |
+| updatedAt | string | No | ISO 8601 datetime |
+
+---
+
+## Summary Checklist for Backend
+
+- [ ] `GET /api/finance/quotations` returns array of Quotation
+- [ ] `GET /api/finance/quotations/:id` returns single Quotation or 404
+- [ ] `POST /api/finance/quotations` accepts body without `id`, returns created Quotation with `id`
+- [ ] `PUT /api/finance/quotations/:id` accepts partial body, returns updated Quotation
+- [ ] `DELETE /api/finance/quotations/:id` returns 200/204 on success
+- [ ] `GET /api/finance/quotations/:id/pdf` returns PDF binary
 
 ---
 
@@ -2679,13 +2833,13 @@ This document describes the API contract the frontend expects for the Dashboard 
 
 The dashboard **aggregates data from existing module APIs** in parallel on the frontend:
 
-- `GET /api/projects`
-- `GET /api/invoices`
-- `GET /api/purchase-orders`
-- `GET /api/proposal-penawaran`
-- `GET /api/basts`
-- `GET /api/employees`
-- `GET /api/tax-types`
+- `GET /api/finance/projects`
+- `GET /api/finance/invoices`
+- `GET /api/finance/purchase-orders`
+- `GET /api/finance/proposal-penawaran`
+- `GET /api/finance/basts`
+- `GET /api/hr/employees`
+- `GET /api/finance/tax-types`
 
 The frontend uses `Promise.all` to fetch these in parallel and computes metrics, recent activities, and active projects client-side.
 
@@ -2701,7 +2855,7 @@ For better performance and a single round-trip, the backend may implement a cons
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/dashboard` | Get dashboard summary (metrics, activities, active projects, revenue trend) |
+| GET | `/api/analytics/dashboard` | Get dashboard summary (metrics, activities, active projects, revenue trend) |
 
 ---
 
@@ -2710,7 +2864,7 @@ For better performance and a single round-trip, the backend may implement a cons
 **Request**
 
 ```
-GET /api/dashboard
+GET /api/analytics/dashboard
 ```
 
 **Response:** `200 OK`
@@ -2865,7 +3019,7 @@ Same as Employee module – see Error Response Format section above.
 
 ## Summary Checklist for Backend
 
-- [ ] `GET /api/dashboard` returns DashboardSummary with metrics, recentActivities, activeProjects, revenueByProject
+- [ ] `GET /api/analytics/dashboard` returns DashboardSummary with metrics, recentActivities, activeProjects, revenueByProject
 - [ ] metrics.projects includes total, onProgress, completed, cancelled
 - [ ] metrics.invoices includes count and totalRevenue (sum of invoice line item totals)
 - [ ] recentActivities sorted by timestamp descending, top 15
@@ -3128,6 +3282,227 @@ Same as Employee module – see Error Response Format section above.
 - [ ] `DELETE /api/inventory/:id` returns 200/204 on success, 404 if not found
 - [ ] All JSON responses use `Content-Type: application/json`
 - [ ] Error responses include `message` (and optionally `code`, `errors`)
+
+---
+
+# API Mapping Documentation – Client Module
+
+This document describes the API contract the frontend expects for the Client master data. Backend teams should implement endpoints that match this specification.
+
+---
+
+## Endpoints Overview
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/finance/clients` | List all clients |
+| GET | `/api/finance/clients/:id` | Get client by ID |
+| POST | `/api/finance/clients` | Create client |
+| PUT | `/api/finance/clients/:id` | Update client |
+| DELETE | `/api/finance/clients/:id` | Delete client |
+
+---
+
+## Entity Schema: Client
+
+### ClientPic
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| name | string | Yes | Nama PIC |
+| position | string | No | Jabatan PIC |
+| contact | string | No | Kontak PIC |
+
+### Client
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | Yes (response) | Unique identifier (server-generated) |
+| name | string | Yes | Nama Client |
+| companyName | string | Yes | Nama Perusahaan |
+| address | string | No | Alamat |
+| phone | string | No | Telepon |
+| email | string | No | Email |
+| npwp | string | No | NPWP |
+| pic | ClientPic | No | Informasi PIC |
+| isActive | boolean | Yes | Active status |
+| createdAt | string | No | ISO 8601 datetime |
+| updatedAt | string | No | ISO 8601 datetime |
+
+---
+
+## Summary Checklist for Backend
+
+- [ ] `GET /api/finance/clients` returns array of Client
+- [ ] `GET /api/finance/clients/:id` returns single Client or 404
+- [ ] `POST /api/finance/clients` accepts body without `id`, returns created Client with `id`
+- [ ] `PUT /api/finance/clients/:id` accepts partial body, returns updated Client
+- [ ] `DELETE /api/finance/clients/:id` returns 200/204 on success
+
+---
+
+# API Mapping Documentation – Vendor Module
+
+This document describes the API contract the frontend expects for the Vendor master data. Backend teams should implement endpoints that match this specification.
+
+---
+
+## Endpoints Overview
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/finance/vendors` | List all vendors |
+| GET | `/api/finance/vendors/:id` | Get vendor by ID |
+| POST | `/api/finance/vendors` | Create vendor |
+| PUT | `/api/finance/vendors/:id` | Update vendor |
+| DELETE | `/api/finance/vendors/:id` | Delete vendor |
+
+---
+
+## Entity Schema: Vendor
+
+### VendorPic
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| name | string | Yes | Nama PIC |
+| position | string | No | Jabatan PIC |
+| contact | string | No | Kontak PIC |
+
+### Vendor
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| id | string | Yes (response) | Unique identifier (server-generated) |
+| name | string | Yes | Nama Vendor |
+| companyName | string | Yes | Nama Perusahaan |
+| address | string | No | Alamat |
+| phone | string | No | Telepon |
+| email | string | No | Email |
+| npwp | string | No | NPWP |
+| pic | VendorPic | No | Informasi PIC |
+| bankName | string | No | Nama Bank |
+| bankAccount | string | No | Nomor Rekening |
+| bankBranch | string | No | Cabang Bank |
+| isActive | boolean | Yes | Active status |
+| createdAt | string | No | ISO 8601 datetime |
+| updatedAt | string | No | ISO 8601 datetime |
+
+---
+
+## Summary Checklist for Backend
+
+- [ ] `GET /api/finance/vendors` returns array of Vendor
+- [ ] `GET /api/finance/vendors/:id` returns single Vendor or 404
+- [ ] `POST /api/finance/vendors` accepts body without `id`, returns created Vendor with `id`
+- [ ] `PUT /api/finance/vendors/:id` accepts partial body, returns updated Vendor
+- [ ] `DELETE /api/finance/vendors/:id` returns 200/204 on success
+
+---
+
+# API Mapping Documentation – Auth (Authentication)
+
+This section describes the API contract for authentication. **All URLs match Swagger.**
+
+---
+
+## Endpoints Overview (Auth)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Authenticate and receive JWT token |
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/logout` | Logout (invalidate session) |
+| GET | `/api/auth/me` | Get current user with role and permissionKeys |
+
+---
+
+## 1. Login
+
+**Request**
+
+```
+POST /api/auth/login
+Content-Type: application/json
+```
+
+**Request Body (Payload)**
+
+```json
+{
+  "username": "admin",
+  "password": "Admin@123"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| username | string | Yes | Login username |
+| password | string | Yes | Plain password |
+
+**Response:** `200 OK`
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "role": "SUPER_ADMIN"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| token | string | JWT token; use in `Authorization: Bearer <token>` |
+| user | object | Current user (id: number, username, role) |
+
+**Response 401:** Invalid credentials
+
+```json
+{
+  "message": "Invalid credentials",
+  "code": "INVALID_CREDENTIALS"
+}
+```
+
+---
+
+## 2. Get Current User (Me)
+
+**Request**
+
+```
+GET /api/auth/me
+Authorization: Bearer <token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "id": "user-1",
+  "username": "admin",
+  "email": "admin@example.com",
+  "fullName": "Administrator",
+  "roleId": "role-1",
+  "isActive": true,
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "role": {
+    "id": "role-1",
+    "code": "SUPER_ADMIN",
+    "name": "Super Administrator",
+    "permissionKeys": ["dashboard", "finance", "finance.invoice", "hr.employees", "access_control.roles", "access_control.users"]
+  }
+}
+```
+
+- Frontend uses `role.permissionKeys` for RBAC sidebar filtering.
+- **No password in response.**
+
+**Response 401:** Unauthorized (missing or invalid token)
 
 ---
 

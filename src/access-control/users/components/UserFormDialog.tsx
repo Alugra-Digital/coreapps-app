@@ -29,6 +29,8 @@ import { Switch } from "@/components/ui/switch";
 import { userFormSchema, type UserFormValues } from "../schema";
 import { createUser, updateUser } from "@/api/users";
 import { getRoles } from "@/api/roles";
+import type { ApiError } from "@/lib/api/client";
+import { toast } from "sonner";
 import type { User } from "../types";
 import type { Role } from "@/access-control/roles/types";
 
@@ -87,27 +89,37 @@ export function UserFormDialog({
   }, [user, open, form, roles]);
 
   const onSubmit = async (values: UserFormValues) => {
-    if (isEdit && user) {
-      const payload: { username: string; email: string; fullName: string; roleId: string; isActive: boolean; password?: string } = {
-        username: values.username,
-        email: values.email,
-        fullName: values.fullName,
-        roleId: values.roleId,
-        isActive: values.isActive,
-      };
-      if (values.password?.trim()) payload.password = values.password;
-      await updateUser(user.id, payload);
-    } else {
-      await createUser({
-        username: values.username,
-        email: values.email,
-        fullName: values.fullName,
-        roleId: values.roleId,
-        password: values.password?.trim() || undefined,
-        isActive: values.isActive,
-      });
+    try {
+      if (isEdit && user) {
+        const payload: { username: string; email: string; fullName: string; roleId: string; isActive: boolean; password?: string } = {
+          username: values.username,
+          email: values.email,
+          fullName: values.fullName,
+          roleId: values.roleId,
+          isActive: values.isActive,
+        };
+        if (values.password?.trim()) payload.password = values.password;
+        await updateUser(user.id, payload);
+      } else {
+        await createUser({
+          username: values.username,
+          email: values.email,
+          fullName: values.fullName,
+          roleId: values.roleId,
+          password: values.password?.trim() || undefined,
+          isActive: values.isActive,
+        });
+      }
+      onSuccess();
+    } catch (err) {
+      const apiErr = err as ApiError;
+      toast.error(apiErr.message ?? "An error occurred");
+      if (Array.isArray(apiErr.errors)) {
+        for (const { field, message } of apiErr.errors) {
+          form.setError(field as keyof UserFormValues, { message });
+        }
+      }
     }
-    onSuccess();
   };
 
   return (

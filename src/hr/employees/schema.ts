@@ -25,6 +25,10 @@ export const employeeFormSchema = z.object({
   noJknKis: z.string().optional(),
   noJms: z.string().optional(),
   tanggalKeluar: z.string().optional(),
+  profilePictureUrl: z.string().optional(),
+  ktpDocumentUrl: z.string().optional(),
+  kkDocumentUrl: z.string().optional(),
+  npwpDocumentUrl: z.string().optional(),
 });
 
 export type EmployeeFormValues = z.infer<typeof employeeFormSchema>;

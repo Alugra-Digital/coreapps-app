@@ -66,6 +66,7 @@ const defaultLineItem = {
   unit: "Unit",
   price: 0,
   subtotal: 0,
+  dpp: 0,
   taxRate: 11,
   taxAmount: 0,
   priceAfterTax: 0,
@@ -89,11 +90,12 @@ function computeLineItem(
   qty: number,
   price: number,
   taxRate: number = 11
-): { subtotal: number; taxAmount: number; priceAfterTax: number } {
+): { subtotal: number; dpp: number; taxAmount: number; priceAfterTax: number } {
   const subtotal = qty * price;
-  const taxAmount = (subtotal * taxRate) / 100;
+  const dpp = (11 / 12) * subtotal;
+  const taxAmount = (dpp * taxRate) / 100;
   const priceAfterTax = subtotal + taxAmount;
-  return { subtotal, taxAmount, priceAfterTax };
+  return { subtotal, dpp, taxAmount, priceAfterTax };
 }
 
 export function InvoiceFormDialog({
@@ -123,7 +125,7 @@ export function InvoiceFormDialog({
     (index: number) => {
       const item = lineItems[index];
       if (!item || item.quantity <= 0 || item.price < 0) return;
-      const { subtotal, taxAmount, priceAfterTax } = computeLineItem(
+      const { subtotal, dpp, taxAmount, priceAfterTax } = computeLineItem(
         item.quantity,
         item.price,
         item.taxRate ?? 11
@@ -133,6 +135,7 @@ export function InvoiceFormDialog({
         ...item,
         number: index + 1,
         subtotal,
+        dpp,
         taxAmount,
         priceAfterTax,
       };
@@ -149,6 +152,7 @@ export function InvoiceFormDialog({
       quantity: 0,
       price: 0,
       subtotal: 0,
+      dpp: 0,
       taxAmount: 0,
       priceAfterTax: 0,
     };
@@ -176,6 +180,7 @@ export function InvoiceFormDialog({
         billingInfo: invoice.billingInfo,
         lineItems: invoice.lineItems.map((li) => ({
           ...li,
+          dpp: li.dpp ?? (11 / 12) * (li.subtotal ?? 0),
           taxRate: li.taxRate ?? 11,
         })),
         paymentInfo: invoice.paymentInfo,
@@ -210,6 +215,7 @@ export function InvoiceFormDialog({
       lineItems: values.lineItems.map((li, i) => ({
         ...li,
         number: i + 1,
+        dpp: li.dpp ?? (11 / 12) * (li.subtotal ?? 0),
         taxRate: li.taxRate ?? 11,
         taxAmount: li.taxAmount ?? 0,
         priceAfterTax: li.priceAfterTax ?? li.subtotal,
@@ -611,13 +617,23 @@ export function InvoiceFormDialog({
                             </FormItem>
                           )}
                         />
-                        <div className="col-span-2 flex items-center gap-1">
-                          <span className="text-xs text-slate-500">
+                        <div className="col-span-1 flex flex-col">
+                          <span className="text-[10px] text-slate-500">DPP</span>
+                          <span className="text-xs font-medium text-foreground">
                             {new Intl.NumberFormat("id-ID").format(
-                              lineItems[index]?.priceAfterTax ?? 0
+                              lineItems[index]?.dpp ?? 0
                             )}
                           </span>
-                          <Button
+                        </div>
+                        <div className="col-span-2 flex flex-col gap-0.5">
+                          <span className="text-[10px] text-slate-500">Total</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-medium text-foreground">
+                              {new Intl.NumberFormat("id-ID").format(
+                                lineItems[index]?.priceAfterTax ?? 0
+                              )}
+                            </span>
+                            <Button
                             type="button"
                             variant="ghost"
                             size="icon"
@@ -627,6 +643,7 @@ export function InvoiceFormDialog({
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
+                          </div>
                         </div>
                       </div>
                     ))}

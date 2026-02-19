@@ -1,27 +1,63 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { login as apiLogin } from "@/api/auth";
 import { getCurrentUser } from "@/api/users";
+import { setOnUnauthorized } from "@/lib/api/client";
+import { setToken, clearToken, getToken } from "@/lib/api/tokenStore";
 import type { CurrentUser } from "@/access-control/users/types";
 
 interface AuthContextValue {
   currentUser: CurrentUser | null;
   isLoading: boolean;
   permissions: string[];
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
   refetch: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const logout = useCallback(() => {
+    clearToken();
+    setCurrentUser(null);
+  }, []);
 
   const refetch = useCallback(async () => {
     const user = await getCurrentUser();
     setCurrentUser(user);
   }, []);
 
+  const login = useCallback(
+    async (username: string, password: string) => {
+      const { token, user } = await apiLogin(username, password);
+      setToken(token);
+      const fullUser = await getCurrentUser();
+      setCurrentUser(fullUser ?? (user as CurrentUser));
+    },
+    []
+  );
+
+  useEffect(() => {
+    setOnUnauthorized(() => {
+      logout();
+      navigate("/login");
+    });
+    return () => setOnUnauthorized(null);
+  }, [logout, navigate]);
+
   useEffect(() => {
     let cancelled = false;
+    const token = getToken();
+    if (!token) {
+      setCurrentUser(null);
+      if (!cancelled) setIsLoading(false);
+      return;
+    }
     getCurrentUser()
       .then((user) => {
         if (!cancelled) setCurrentUser(user);
@@ -40,6 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     isLoading,
     permissions,
+    login,
+    logout,
     refetch,
   };
 
