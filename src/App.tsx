@@ -10,6 +10,7 @@ import DashboardPage from "@/dashboard/page";
 import FinancePage from "@/finance/page";
 import InventoryPage from "./inventory/page";
 import InvoicePage from "./invoice/page";
+import InvoiceCreatePage from "./invoice/InvoiceCreatePage";
 import PaymentPage from "./payment/page";
 import PaymentDetailPage from "./detail-payment/page";
 import ReportsPage from "./reports/page";
@@ -56,6 +57,7 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/finance/accounting" element={<FinancePage />} />
               <Route path="/finance/invoice" element={<InvoicePage />} />
+              <Route path="/finance/invoice/create" element={<InvoiceCreatePage />} />
               <Route path="/finance/payment" element={<PaymentPage />} />
               <Route
                 path="/finance/purchase-orders"
@@ -87,7 +89,9 @@ function App() {
           </Route>
         </Routes>
       </AuthProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {!import.meta.env.PROD && import.meta.env.MODE !== "test" && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
     </QueryClientProvider>
   );
 }

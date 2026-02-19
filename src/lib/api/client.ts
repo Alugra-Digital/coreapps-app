@@ -31,9 +31,6 @@ export async function apiClient<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = API_BASE_URL ? `${API_BASE_URL.replace(/\/$/, "")}${endpoint}` : endpoint;
-  // #region agent log
-  fetch('http://127.0.0.1:7544/ingest/9f3423bf-0257-4e34-8604-892d2a12af86',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'713667'},body:JSON.stringify({sessionId:'713667',location:'client.ts:apiClient:start',message:'API request',data:{endpoint,url,baseUrl:API_BASE_URL,hasToken:!!getToken()},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -69,10 +66,6 @@ export async function apiClient<T>(
         // ignore json parse error
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7544/ingest/9f3423bf-0257-4e34-8604-892d2a12af86',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'713667'},body:JSON.stringify({sessionId:'713667',location:'client.ts:apiClient',message:'API error',data:{endpoint,status:response.status,hasToken:!!token,url,errMsg:error.message},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-      // #endregion
-
       if (response.status === 401 && onUnauthorizedCallback) {
         onUnauthorizedCallback();
       }
@@ -85,10 +78,6 @@ export async function apiClient<T>(
     }
     return undefined as T;
   } catch (err) {
-    // #region agent log
-    const errMsg = err && typeof err === "object" && "message" in err ? (err as Error).message : "unknown";
-    fetch('http://127.0.0.1:7544/ingest/9f3423bf-0257-4e34-8604-892d2a12af86',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'713667'},body:JSON.stringify({sessionId:'713667',location:'client.ts:apiClient:catch',message:'API fetch exception',data:{endpoint,url,errMsg},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     if (err && typeof err === "object" && "message" in err) {
       throw err;
     }

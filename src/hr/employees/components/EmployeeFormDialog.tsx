@@ -106,6 +106,7 @@ export function EmployeeFormDialog({
 }: EmployeeFormDialogProps) {
   const isEdit = !!employee;
   const [positionOptions, setPositionOptions] = useState<{ value: string; label: string }[]>([]);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -125,6 +126,10 @@ export function EmployeeFormDialog({
     resolver: zodResolver(employeeFormSchema),
     defaultValues,
   });
+
+  useEffect(() => {
+    if (open) setFormError(null);
+  }, [open]);
 
   useEffect(() => {
     if (employee) {
@@ -203,23 +208,49 @@ export function EmployeeFormDialog({
       npwpDocumentUrl: values.npwpDocumentUrl || undefined,
     };
 
-    if (isEdit && employee) {
-      await updateEmployee(employee.id, payload);
-    } else {
-      await createEmployee(payload);
+    setFormError(null);
+    try {
+      if (isEdit && employee) {
+        const result = await updateEmployee(employee.id, payload);
+        if (!result) {
+          setFormError("Failed to update employee. Please try again.");
+          return;
+        }
+      } else {
+        await createEmployee(payload);
+      }
+      onSuccess();
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to save employee. Please try again.";
+      setFormError(message);
     }
-    onSuccess();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0" data-testid="employee-form-dialog">
         <DialogHeader className="p-6 pb-4">
           <DialogTitle>{isEdit ? "Edit Employee" : "Add Employee"}</DialogTitle>
         </DialogHeader>
 
+        {formError && (
+          <div
+            className="mx-6 mb-2 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            data-testid="employee-form-error"
+          >
+            {formError}
+          </div>
+        )}
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col flex-1 overflow-hidden"
+            data-testid="employee-form"
+          >
             <Tabs defaultValue="personal" className="flex-1 flex flex-col gap-4 overflow-hidden">
               <TabsList className="mx-6 px-2 flex gap-1 shrink-0">
                 <TabsTrigger value="personal" className="text-xs px-2 py-1.5">Personal</TabsTrigger>
@@ -835,7 +866,11 @@ export function EmployeeFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                data-testid="employee-form-submit"
+              >
                 {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
               </Button>
             </DialogFooter>

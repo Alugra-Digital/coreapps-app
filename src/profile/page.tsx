@@ -21,8 +21,30 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+
+function getInitials(fullName?: string | null, username?: string): string {
+  if (fullName?.trim()) {
+    return fullName
+      .split(/\s+/)
+      .map((s) => s[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+  if (username?.trim()) {
+    return username.slice(0, 2).toUpperCase();
+  }
+  return "—";
+}
 
 export default function ProfilePage() {
+  const { currentUser } = useAuth();
+  const displayName = currentUser?.fullName ?? currentUser?.username ?? "—";
+  const displayEmail = currentUser?.email ?? "—";
+  const displayRole = currentUser?.role?.name ?? currentUser?.role?.code ?? "—";
+  const initials = getInitials(currentUser?.fullName, currentUser?.username);
+
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1200px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
       {/* Profile Header / Hero */}
@@ -35,7 +57,7 @@ export default function ProfilePage() {
             <Avatar className="h-28 w-28 border-4 border-white dark:border-[#111111] shadow-xl">
               <AvatarImage src="" />
               <AvatarFallback className="bg-slate-100 dark:bg-white/5 text-slate-900 dark:text-foreground text-3xl font-black">
-                AH
+                {initials}
               </AvatarFallback>
             </Avatar>
             <Button
@@ -48,10 +70,10 @@ export default function ProfilePage() {
           <div className="flex-1 pb-2">
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-black text-slate-900 dark:text-foreground tracking-tight">
-                Achmad Hakim
+                {displayName}
               </h1>
               <Badge className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-none font-bold text-[10px] uppercase tracking-wider">
-                Verified Admin
+                {displayRole}
               </Badge>
             </div>
             <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs font-medium text-slate-500 dark:text-slate-400">
@@ -62,7 +84,7 @@ export default function ProfilePage() {
                 <Globe className="h-3.5 w-3.5" /> Timezone: GMT+7 (WIB)
               </span>
               <span className="flex items-center gap-1.5 text-primary">
-                <Mail className="h-3.5 w-3.5" /> achmadhakim@gmail.com
+                <Mail className="h-3.5 w-3.5" /> {displayEmail}
               </span>
             </div>
           </div>
@@ -96,7 +118,7 @@ export default function ProfilePage() {
                     Full Name
                   </label>
                   <Input
-                    defaultValue="Achmad Hakim"
+                    defaultValue={displayName}
                     className="h-10 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg"
                   />
                 </div>
@@ -105,7 +127,7 @@ export default function ProfilePage() {
                     Job Title
                   </label>
                   <Input
-                    defaultValue="Chief Operation Officer"
+                    defaultValue={displayRole}
                     className="h-10 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg"
                   />
                 </div>
@@ -114,7 +136,7 @@ export default function ProfilePage() {
                     Email Address
                   </label>
                   <Input
-                    defaultValue="achmadhakim@gmail.com"
+                    defaultValue={displayEmail !== "—" ? displayEmail : ""}
                     className="h-10 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg"
                   />
                 </div>

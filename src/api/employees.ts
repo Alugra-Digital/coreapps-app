@@ -6,9 +6,18 @@
 import type { Employee, EmployeeCreateInput, EmployeeUpdateInput } from "@/hr/employees/types";
 import { api } from "@/lib/api/client";
 
+/** Normalize response: return data array when paginated, otherwise return as-is */
+function normalizeListResponse<T>(response: unknown): T[] {
+  if (response && typeof response === "object" && "data" in response) {
+    const data = (response as { data: T[] }).data;
+    return Array.isArray(data) ? data : [];
+  }
+  return Array.isArray(response) ? (response as T[]) : [];
+}
+
 export async function getEmployees(): Promise<Employee[]> {
-  const res = await api.get<Employee[] | { data: Employee[] }>("/api/hr/employees");
-  return Array.isArray(res) ? res : res.data;
+  const response = await api.get<Employee[] | { data: Employee[] }>("/api/hr/employees");
+  return normalizeListResponse<Employee>(response);
 }
 
 export async function getEmployeeById(id: string): Promise<Employee | null> {

@@ -28,6 +28,7 @@ export default function DashboardPage() {
   useEffect(() => {
     getDashboardData()
       .then(setData)
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 

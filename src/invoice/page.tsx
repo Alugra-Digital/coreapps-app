@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   FilePlus,
   TrendingUp,
@@ -7,6 +7,8 @@ import {
   FileText,
   Target,
   ShieldCheck,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { InvoiceTable } from "./components/InvoiceTable";
 import { InvoiceActivity } from "./components/InvoiceActivity";
@@ -18,18 +20,33 @@ import type { Invoice } from "./types";
 export default function InvoicePage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadInvoices = async () => {
-    const data = await getInvoices();
-    setInvoices(data);
-  };
+  const loadInvoices = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const data = await getInvoices();
+      setInvoices(data);
+    } catch (err) {
+      const message = err && typeof err === "object" && "message" in err
+        ? String((err as { message: string }).message)
+        : "Failed to load invoices";
+      setError(message);
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadInvoices();
-  }, []);
+  }, [loadInvoices]);
 
   const totalInvoiced = invoices.reduce((sum, inv) => {
-    return sum + inv.lineItems.reduce((s, i) => s + (i.priceAfterTax ?? i.subtotal), 0);
+    const items = inv.lineItems ?? [];
+    return sum + items.reduce((s, i) => s + (i.priceAfterTax ?? i.subtotal ?? 0), 0);
   }, 0);
 
   const formatCurrency = (value: number) =>
@@ -40,11 +57,17 @@ export default function InvoicePage() {
     }).format(value);
 
   return (
-    <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
-      {/* Header with Quick Actions */}
+    <div
+      className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors"
+      data-testid="invoice-page"
+    >
+      {/* Header with Quick Actions - always visible */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-foreground">
+          <h1
+            className="text-3xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-foreground"
+            data-testid="invoice-heading"
+          >
             Invoice Management <span className="text-2xl">🧾</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
@@ -62,11 +85,28 @@ export default function InvoicePage() {
           <Button
             className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
             onClick={() => setIsAddOpen(true)}
+            data-testid="create-invoice-btn"
           >
             <FilePlus className="h-4 w-4" /> Create Invoice
           </Button>
         </div>
       </div>
+
+      {/* Error state - visible when API fails */}
+      {error && (
+        <div
+          className="flex items-center justify-between gap-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3"
+          data-testid="invoice-load-error"
+        >
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={loadInvoices}>
+            <RefreshCw className="h-4 w-4 mr-2" /> Try again
+          </Button>
+        </div>
+      )}
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

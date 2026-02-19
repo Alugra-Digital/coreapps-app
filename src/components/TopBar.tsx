@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { ChevronRight, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -12,10 +13,29 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "@/components/ModeToggle";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { useAuth } from "@/contexts/AuthContext";
+
+function getInitials(fullName?: string | null, username?: string): string {
+  if (fullName?.trim()) {
+    return fullName
+      .split(/\s+/)
+      .map((s) => s[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }
+  if (username?.trim()) {
+    return username.slice(0, 2).toUpperCase();
+  }
+  return "—";
+}
 
 interface TopBarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export function TopBar({ className }: TopBarProps) {
+  const { currentUser } = useAuth();
+  const initials = getInitials(currentUser?.fullName, currentUser?.username);
+
   return (
     <div
       className={cn(
@@ -50,14 +70,17 @@ export function TopBar({ className }: TopBarProps) {
       <div className="flex items-center gap-4">
         <ModeToggle />
         <NotificationDropdown />
-        <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden border">
+        <Link
+          to="/profile"
+          className="h-8 w-8 rounded-full bg-muted flex items-center justify-center overflow-hidden border hover:ring-2 hover:ring-primary/20 transition-all"
+        >
           <Avatar className="h-full w-full">
             <AvatarImage src="" />
             <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-              AH
+              {initials}
             </AvatarFallback>
           </Avatar>
-        </div>
+        </Link>
       </div>
     </div>
   );

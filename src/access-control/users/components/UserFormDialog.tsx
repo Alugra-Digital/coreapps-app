@@ -70,9 +70,9 @@ export function UserFormDialog({
     if (user) {
       form.reset({
         username: user.username,
-        email: user.email,
-        fullName: user.fullName,
-        roleId: user.roleId,
+        email: user.email ?? "",
+        fullName: user.fullName ?? "",
+        roleId: user.roleId ?? "",
         password: "",
         isActive: user.isActive,
       });

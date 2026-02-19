@@ -1,4 +1,4 @@
-import { Search, MoreVertical, Pencil, Trash2, Shield } from "lucide-react";
+import { Search, MoreVertical, Pencil, Trash2, Shield, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,14 @@ import {
 import { RoleFormDialog } from "./RoleFormDialog";
 import { deleteRole } from "@/api/roles";
 import type { Role } from "../types";
+import { toast } from "sonner";
+
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  onPageChange: (page: number) => void;
+}
 
 interface RoleTableProps {
   roles: Role[];
@@ -35,6 +43,7 @@ interface RoleTableProps {
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
+  pagination?: PaginationProps;
 }
 
 export function RoleTable({
@@ -43,6 +52,7 @@ export function RoleTable({
   onAddClick,
   isAddOpen,
   onAddOpenChange,
+  pagination,
 }: RoleTableProps) {
   const [search, setSearch] = useState("");
   const [editRole, setEditRole] = useState<Role | null>(null);
@@ -63,6 +73,13 @@ export function RoleTable({
       await deleteRole(deleteRoleId);
       onRefresh();
       setDeleteRoleId(null);
+      toast.success("Role deleted successfully");
+    } catch (err) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : "Failed to delete role";
+      toast.error(message);
     } finally {
       setIsDeleting(false);
     }
@@ -188,6 +205,36 @@ export function RoleTable({
               ))}
             </TableBody>
           </Table>
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                Page {pagination.currentPage} of {pagination.totalPages}
+                {pagination.total > 0 && ` (${pagination.total} total)`}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => pagination.onPageChange(Math.max(1, pagination.currentPage - 1))}
+                  disabled={pagination.currentPage <= 1}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() =>
+                    pagination.onPageChange(Math.min(pagination.totalPages, pagination.currentPage + 1))
+                  }
+                  disabled={pagination.currentPage >= pagination.totalPages}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

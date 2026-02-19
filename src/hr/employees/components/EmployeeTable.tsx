@@ -179,10 +179,16 @@ export function EmployeeTable({
 
   return (
     <>
-      <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
+      <Card
+        className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow"
+        data-testid="employees-table-card"
+      >
         <div className="flex flex-col gap-3 mb-3 px-2">
           <div className="flex justify-between items-center">
-            <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
+            <span
+              className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider"
+              data-testid="employee-list-header"
+            >
               <Users className="h-4 w-4" /> Employee List
             </span>
             <div className="flex items-center gap-3">
@@ -277,6 +283,7 @@ export function EmployeeTable({
               <Button
                 className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
                 onClick={onAddClick}
+                data-testid="employee-table-add-btn"
               >
                 Add Employee
               </Button>
@@ -308,7 +315,7 @@ export function EmployeeTable({
         </div>
 
         <CardContent className="p-0 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <Table>
+          <Table data-testid="employees-table">
             <TableHeader className="bg-slate-50/50 dark:bg-white/5">
               <TableRow className="hover:bg-transparent border-slate-100 dark:border-white/5">
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
@@ -336,6 +343,7 @@ export function EmployeeTable({
               {paginatedEmployees.map((emp) => (
                 <TableRow
                   key={emp.id}
+                  data-testid={`employee-row-${emp.id}`}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
                 >
                   <TableCell className="py-3">
@@ -396,11 +404,13 @@ export function EmployeeTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           onClick={() => setViewEmployee(emp)}
+                          data-testid={`employee-view-btn-${emp.id}`}
                         >
                           <Eye className="h-3.5 w-3.5 mr-2" /> View
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setEditEmployee(emp)}
+                          data-testid={`employee-edit-btn-${emp.id}`}
                         >
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
@@ -411,6 +421,7 @@ export function EmployeeTable({
                             setDeleteEmployeeName(emp.namaKaryawan);
                           }}
                           disabled={!!emp.tanggalKeluar}
+                          data-testid={`employee-resign-btn-${emp.id}`}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" /> Mark as Resigned
                         </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import { Search, MoreVertical, Pencil, Trash2, Users } from "lucide-react";
+import { Search, MoreVertical, Pencil, Trash2, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,20 @@ import { getRoles } from "@/api/roles";
 import type { User } from "../types";
 import type { Role } from "@/access-control/roles/types";
 
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  total: number;
+  onPageChange: (page: number) => void;
+}
+
 interface UserTableProps {
   users: User[];
   onRefresh: () => void;
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
+  pagination?: PaginationProps;
 }
 
 export function UserTable({
@@ -45,6 +53,7 @@ export function UserTable({
   onAddClick,
   isAddOpen,
   onAddOpenChange,
+  pagination,
 }: UserTableProps) {
   const [search, setSearch] = useState("");
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -61,9 +70,9 @@ export function UserTable({
 
   const filtered = users.filter(
     (u) =>
-      u.username.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.fullName.toLowerCase().includes(search.toLowerCase())
+      (u.username ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (u.fullName ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {
@@ -148,13 +157,13 @@ export function UserTable({
                     </span>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {u.email}
+                    {u.email ?? "-"}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {u.fullName}
+                    {u.fullName ?? "-"}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {roleMap.get(u.roleId)?.name ?? u.roleId}
+                    {u.roleId ? (roleMap.get(u.roleId)?.name ?? u.roleId) : "-"}
                   </TableCell>
                   <TableCell className="py-3">
                     <span
@@ -198,6 +207,36 @@ export function UserTable({
               ))}
             </TableBody>
           </Table>
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-white/5">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                Page {pagination.currentPage} of {pagination.totalPages}
+                {pagination.total > 0 && ` (${pagination.total} total)`}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => pagination.onPageChange(Math.max(1, pagination.currentPage - 1))}
+                  disabled={pagination.currentPage <= 1}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() =>
+                    pagination.onPageChange(Math.min(pagination.totalPages, pagination.currentPage + 1))
+                  }
+                  disabled={pagination.currentPage >= pagination.totalPages}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
