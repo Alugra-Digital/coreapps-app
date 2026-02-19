@@ -11,6 +11,7 @@ import ReportsPage from "./reports/page";
 import ProfilePage from "./profile/page";
 import LoginPage from "./login/page";
 import SalesPage from "./sales/page";
+import ModalPage from "./modal/page";
 import { cn } from "@/lib/utils";
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/sales" element={<SalesPage />} />
+            <Route path="/modal" element={<ModalPage />} />
           </Routes>
         </main>
       </div>
