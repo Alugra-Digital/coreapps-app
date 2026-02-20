@@ -72,9 +72,9 @@ export function InvoiceTable({
 
   const filtered = invoices.filter(
     (i) =>
-      i.invoiceInfo.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-      i.billingInfo.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      i.invoiceInfo.invoiceName.toLowerCase().includes(search.toLowerCase())
+      (i.invoiceInfo.invoiceNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (i.billingInfo.companyName ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (i.invoiceInfo.invoiceName ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {

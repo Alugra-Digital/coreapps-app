@@ -70,8 +70,8 @@ export function QuotationTable({
 
   const filtered = quotations.filter((q) => {
     const matchSearch =
-      q.quotationNumber.toLowerCase().includes(search.toLowerCase()) ||
-      q.clientName.toLowerCase().includes(search.toLowerCase());
+      (q.quotationNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (q.clientName ?? "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || q.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -162,13 +162,12 @@ export function QuotationTable({
                   </TableCell>
                   <TableCell className="py-3">
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                        q.status === "accepted"
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${q.status === "accepted"
                           ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
                           : q.status === "rejected" || q.status === "expired"
-                          ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500"
-                          : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
-                      }`}
+                            ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500"
+                            : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
+                        }`}
                     >
                       {STATUS_LABELS[q.status] ?? q.status}
                     </span>

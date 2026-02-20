@@ -102,10 +102,10 @@ export function EmployeeTable({
       const q = search.toLowerCase();
       result = result.filter(
         (e) =>
-          e.nik.toLowerCase().includes(q) ||
-          e.namaKaryawan.toLowerCase().includes(q) ||
-          e.namaJabatan.toLowerCase().includes(q) ||
-          e.email?.toLowerCase().includes(q)
+          (e.nik ?? "").toLowerCase().includes(q) ||
+          (e.namaKaryawan ?? "").toLowerCase().includes(q) ||
+          (e.namaJabatan ?? "").toLowerCase().includes(q) ||
+          (e.email ?? "").toLowerCase().includes(q)
       );
     }
 

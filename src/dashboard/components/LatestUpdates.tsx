@@ -60,8 +60,8 @@ export function LatestUpdates({ activities, className }: LatestUpdatesProps) {
 
   const filtered = activities.filter(
     (a) =>
-      a.type.toLowerCase().includes(search.toLowerCase()) ||
-      a.details.toLowerCase().includes(search.toLowerCase())
+      (a.type ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (a.details ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (

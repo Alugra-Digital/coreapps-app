@@ -61,7 +61,7 @@ export function PositionTable({
 
   const filtered = positions.filter(
     (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (p.code?.toLowerCase().includes(search.toLowerCase()) ?? false)
   );
 
@@ -151,11 +151,10 @@ export function PositionTable({
                   </TableCell>
                   <TableCell className="py-3">
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                        p.isActive
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${p.isActive
                           ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
                           : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
-                      }`}
+                        }`}
                     >
                       {p.isActive ? "Active" : "Inactive"}
                     </span>
