@@ -1,23 +1,50 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
-import { Lock, Mail, ShieldCheck, Globe, ArrowRight } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Lock, User, ShieldCheck, Globe, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import type { ApiError } from "@/lib/api/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const returnTo = (location.state as { returnTo?: string })?.returnTo ?? "/dashboard";
   const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = React.useState<Record<string, string>>({});
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+    setFieldErrors({});
+    const form = e.currentTarget;
+    const username = (form.elements.namedItem("username") as HTMLInputElement)?.value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement)?.value;
+    if (!username || !password) return;
     setIsLoading(true);
-    // Mock authentication delay
-    setTimeout(() => {
+    try {
+      await login(username, password);
+      navigate(returnTo);
+    } catch (err) {
+      const apiErr = err as ApiError;
+      setError(apiErr.message ?? "Sign in failed");
+      if (apiErr.code === "INVALID_CREDENTIALS") {
+        setError(apiErr.message ?? "Invalid credentials");
+      }
+      if (Array.isArray(apiErr.errors)) {
+        const map: Record<string, string> = {};
+        for (const { field, message } of apiErr.errors) {
+          map[field] = message;
+        }
+        setFieldErrors(map);
+      }
+    } finally {
       setIsLoading(false);
-      navigate("/dashboard");
-    }, 1500);
+    }
   };
 
   return (
@@ -46,20 +73,29 @@ export default function LoginPage() {
         <Card className="border-none shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.4)] bg-white/80 dark:bg-card/30 backdrop-blur-xl rounded-3xl overflow-hidden ring-1 ring-slate-200/50 dark:ring-white/5">
           <CardContent className="p-10 pt-12">
             <form onSubmit={handleLogin} className="space-y-6">
+              {error && (
+                <div className="text-sm text-destructive font-medium bg-destructive/10 px-4 py-2 rounded-lg">
+                  {error}
+                </div>
+              )}
               <div className="space-y-2.5">
                 <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">
-                  Email Address
+                  Username
                 </Label>
                 <div className="relative group">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                   <Input
-                    type="email"
-                    placeholder="Enter your work email"
-                    defaultValue="achmadhakim@gmail.com"
+                    name="username"
+                    type="text"
+                    placeholder="Enter your username"
+                    autoComplete="username"
                     className="pl-11 h-12 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium focus:ring-primary/20 transition-all"
                     required
                   />
                 </div>
+                {fieldErrors.username && (
+                  <p className="text-xs text-destructive ml-1">{fieldErrors.username}</p>
+                )}
               </div>
 
               <div className="space-y-2.5">
@@ -68,6 +104,7 @@ export default function LoginPage() {
                     Password
                   </Label>
                   <Button
+                    type="button"
                     variant="link"
                     className="p-0 h-auto text-[10px] font-bold text-slate-400 hover:text-primary transition-colors no-underline"
                   >
@@ -77,13 +114,17 @@ export default function LoginPage() {
                 <div className="relative group">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                   <Input
+                    name="password"
                     type="password"
                     placeholder="••••••••"
-                    defaultValue="password"
+                    autoComplete="current-password"
                     className="pl-11 h-12 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium focus:ring-primary/20 transition-all"
                     required
                   />
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-xs text-destructive ml-1">{fieldErrors.password}</p>
+                )}
               </div>
 
               <Button

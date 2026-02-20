@@ -7,23 +7,42 @@ import {
   Tooltip as RechartsTooltip,
   Cell,
 } from "recharts";
-import { TrendingUp, Calendar, ChevronDown } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-const utilizationData = [
-  { day: "Sun", value: 45 },
-  { day: "Mon", value: 78 },
-  { day: "Tue", value: 92, active: true },
-  { day: "Wed", value: 85 },
-  { day: "Thu", value: 88 },
-  { day: "Fri", value: 82 },
-  { day: "Sat", value: 50 },
-];
+interface RevenueItem {
+  projectId: string;
+  projectName: string;
+  income: number;
+}
 
-export function PerformanceTrendChart({ className }: { className?: string }) {
+interface PerformanceTrendChartProps {
+  revenueByProject: RevenueItem[];
+  totalRevenue: number;
+  className?: string;
+}
+
+function formatIdr(value: number): string {
+  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return String(value);
+}
+
+export function PerformanceTrendChart({
+  revenueByProject,
+  totalRevenue,
+  className,
+}: PerformanceTrendChartProps) {
+  const chartData = revenueByProject.slice(0, 7).map((p) => ({
+    name: p.projectName.length > 20 ? p.projectName.slice(0, 17) + "..." : p.projectName,
+    value: p.income,
+    fullName: p.projectName,
+  }));
+
+  const hasData = chartData.length > 0;
+
   return (
     <Card
       className={cn(
@@ -33,90 +52,72 @@ export function PerformanceTrendChart({ className }: { className?: string }) {
     >
       <div className="flex justify-between items-center px-2">
         <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-          <TrendingUp className="h-4 w-4" /> Billable Utilization
+          <TrendingUp className="h-4 w-4" /> Revenue by Project
         </span>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1 rounded-lg text-[10px] font-medium bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10"
-          >
-            <Calendar className="h-3 w-3" /> Daily View{" "}
-            <ChevronDown className="h-3 w-3" />
-          </Button>
-        </div>
       </div>
 
       <CardContent className="p-6 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="flex flex-col gap-1 mb-6">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-foreground">
-              84.2%
+              {formatIdr(totalRevenue)}
             </span>
-            <Badge
-              variant="outline"
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded-2xl border-[#edb53b]/50 text-[#edb53b] bg-[#edb53b]/10 hover:bg-[#edb53b]/20"
-            >
-              +5.4%
-              <span className="font-normal ml-1">vs yesterday</span>
-            </Badge>
+            <span className="text-xs text-slate-500">IDR total</span>
           </div>
         </div>
 
         <div className="h-[220px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={utilizationData}>
-              <defs>
-                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#edb53b" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#d9a32d" stopOpacity={0.8} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="day"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#94a3b8", fontSize: 12 }}
-                dy={10}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "#94a3b8", fontSize: 12 }}
-                dx={-10}
-              />
-              <RechartsTooltip
-                cursor={{
-                  fill: "rgba(0, 0, 0, 0.05)",
-                  className: "dark:fill-white/5",
-                }}
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    return (
-                      <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-xl border-none">
-                        {payload[0].payload.day} : {payload[0].value}%
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={40}>
-                {utilizationData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      entry.active ? "url(#barGradient)" : "rgba(0, 0, 0, 0.03)"
+          {hasData ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 20 }}>
+                <defs>
+                  <linearGradient id="revenueBarGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#059669" stopOpacity={0.8} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  type="number"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 11 }}
+                  tickFormatter={formatIdr}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={100}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "#94a3b8", fontSize: 10 }}
+                />
+                <RechartsTooltip
+                  cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const p = payload[0].payload;
+                      return (
+                        <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-xl border-none">
+                          <div className="font-bold">{p.fullName}</div>
+                          <div>Rp {new Intl.NumberFormat("id-ID").format(p.value)}</div>
+                        </div>
+                      );
                     }
-                    className={cn(
-                      "transition-all duration-300 hover:opacity-80",
-                      !entry.active && "dark:fill-white/5",
-                    )}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                    return null;
+                  }}
+                />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24} fill="url(#revenueBarGradient)">
+                  {chartData.map((_, index) => (
+                    <Cell key={`cell-${index}`} className="transition-all duration-300 hover:opacity-80" />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-400 text-sm">
+              No revenue data yet
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

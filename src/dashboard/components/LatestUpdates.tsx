@@ -4,111 +4,65 @@ import {
   Search,
   FileText,
   ClipboardCheck,
-  Building2,
-  TrendingUp,
-  PackageCheck,
-  CreditCard,
+  FileBarChart,
+  Package,
   Briefcase,
-  AlertTriangle,
-  Settings,
-  ShieldCheck,
-  BarChart3,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { DashboardActivity } from "@/api/dashboard";
 
-type TabType = "Today" | "Yesterday" | "This week";
+function getActivityIcon(_type: string, entityType: DashboardActivity["entityType"]) {
+  const color = {
+    invoice: "text-blue-500",
+    purchase_order: "text-emerald-500",
+    proposal: "text-indigo-500",
+    bast: "text-amber-500",
+    project: "text-slate-500",
+  }[entityType];
+  switch (entityType) {
+    case "invoice":
+      return <FileText className={cn("h-4 w-4", color)} />;
+    case "purchase_order":
+      return <ClipboardCheck className={cn("h-4 w-4", color)} />;
+    case "proposal":
+      return <FileBarChart className={cn("h-4 w-4", color)} />;
+    case "bast":
+      return <Package className={cn("h-4 w-4", color)} />;
+    case "project":
+      return <Briefcase className={cn("h-4 w-4", color)} />;
+    default:
+      return <FileText className={cn("h-4 w-4", color)} />;
+  }
+}
 
-const activitiesData: Record<TabType, any[]> = {
-  Today: [
-    {
-      id: 1,
-      type: "Invoice Generated",
-      details: "INV-2024-001 for PT. Alpha Indonesia",
-      time: "11:20 AM",
-      icon: <FileText className="h-4 w-4 text-blue-500" />,
-    },
-    {
-      id: 2,
-      type: "PO Approved",
-      details: "Purchase Order #992 (Office Supplies)",
-      time: "11:15 AM",
-      icon: <ClipboardCheck className="h-4 w-4 text-emerald-500" />,
-    },
-    {
-      id: 3,
-      type: "New Vendor",
-      details: "Global Logistics registered as vendor",
-      time: "11:00 AM",
-      icon: <Building2 className="h-4 w-4 text-indigo-500" />,
-    },
-    {
-      id: 4,
-      type: "Revenue Projection",
-      details: "Q1 financial forecast updated (+5%)",
-      time: "10:45 AM",
-      icon: <TrendingUp className="h-4 w-4 text-sky-500" />,
-    },
-    {
-      id: 5,
-      type: "Stock Restock",
-      details: "Inventory 'Metal Sheets' restocked (+500kg)",
-      time: "10:30 AM",
-      icon: <PackageCheck className="h-4 w-4 text-amber-500" />,
-    },
-    {
-      id: 6,
-      type: "Billable Utilization",
-      details: "Billable Utilization updated (+500kg)",
-      time: "10:30 AM",
-      icon: <BarChart3 className="h-4 w-4 text-slate-500" />,
-    },
-  ],
-  Yesterday: [
-    {
-      id: 6,
-      type: "Payroll Processed",
-      details: "January payroll disbursed to 84 employees",
-      time: "04:30 PM",
-      icon: <CreditCard className="h-4 w-4 text-purple-500" />,
-    },
-    {
-      id: 7,
-      type: "New Work Order",
-      details: "WO-2024-012 for Facility Maintenance",
-      time: "02:15 PM",
-      icon: <Briefcase className="h-4 w-4 text-slate-500" />,
-    },
-    {
-      id: 8,
-      type: "Compliance Alert",
-      details: "Monthly tax report needs review",
-      time: "11:00 AM",
-      icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
-    },
-  ],
-  "This week": [
-    {
-      id: 9,
-      type: "System Migration",
-      details: "Accounting module migrated to v4.5",
-      time: "Jan 28",
-      icon: <Settings className="h-4 w-4 text-slate-600" />,
-    },
-    {
-      id: 10,
-      type: "Audit Completed",
-      details: "External audit for ISO-9001 passed",
-      time: "Jan 26",
-      icon: <ShieldCheck className="h-4 w-4 text-green-600" />,
-    },
-  ],
-};
+function formatActivityTime(timestamp: string): string {
+  const d = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
 
-export function LatestUpdates({ className }: { className?: string }) {
-  const [activeTab, setActiveTab] = useState<TabType>("Today");
-  const activities = activitiesData[activeTab];
+interface LatestUpdatesProps {
+  activities: DashboardActivity[];
+  className?: string;
+}
+
+export function LatestUpdates({ activities, className }: LatestUpdatesProps) {
+  const [search, setSearch] = useState("");
+
+  const filtered = activities.filter(
+    (a) =>
+      a.type.toLowerCase().includes(search.toLowerCase()) ||
+      a.details.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <Card
@@ -127,61 +81,48 @@ export function LatestUpdates({ className }: { className?: string }) {
       </div>
 
       <CardContent className="p-6 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col gap-4 flex-1">
-        <div className="flex p-0.5 bg-slate-100 dark:bg-white/5 rounded-lg">
-          {(Object.keys(activitiesData) as TabType[]).map((tab) => (
-            <Button
-              key={tab}
-              variant="ghost"
-              size="sm"
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex-1 text-xs font-medium h-7 rounded-md transition-all",
-                activeTab === tab
-                  ? "shadow-sm bg-white dark:bg-white/10 text-slate-900 dark:text-foreground"
-                  : "text-muted-foreground hover:bg-slate-200/50 dark:hover:bg-white/5",
-              )}
-            >
-              {tab}
-            </Button>
-          ))}
-        </div>
-
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             placeholder="Search activities"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-slate-50 dark:bg-white/5 border-none rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/10 outline-none text-foreground"
           />
         </div>
 
         <div className="flex flex-col gap-6 mt-2 flex-1 overflow-hidden min-h-0">
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            {activities.length} new activities {activeTab.toLowerCase()}
+            {filtered.length} recent activities
           </span>
           <div className="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
-            {activities.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex gap-4 group/item cursor-pointer"
-              >
-                <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group-hover/item:bg-white dark:group-hover/item:bg-white/10 group-hover/item:shadow-sm transition-all">
-                  {activity.icon}
-                </div>
-                <div className="mt-1 flex flex-col gap-0.5 flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
-                      {activity.type}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {activity.time}
+            {filtered.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4">No activities yet</p>
+            ) : (
+              filtered.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex gap-4 group/item cursor-pointer"
+                >
+                  <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group-hover/item:bg-white dark:group-hover/item:bg-white/10 group-hover/item:shadow-sm transition-all">
+                    {getActivityIcon(activity.type, activity.entityType)}
+                  </div>
+                  <div className="mt-1 flex flex-col gap-0.5 flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
+                        {activity.type}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground shrink-0">
+                        {formatActivityTime(activity.timestamp)}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                      {activity.details}
                     </span>
                   </div>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                    {activity.details}
-                  </span>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </CardContent>

@@ -1,73 +1,123 @@
-# React + TypeScript + Vite
+# Coreapps ERP - Frontend Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Enterprise Resource Planning (ERP) system frontend for PT. Alugra Digital Indonesia. This is a React + TypeScript + Vite application that provides the user interface for HR management, financial administration, and project tracking.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Framework:** React 19 with TypeScript
+- **Build Tool:** Vite 7
+- **Styling:** Tailwind CSS 4
+- **UI Components:** Radix UI, shadcn/ui
+- **Form Management:** React Hook Form + Zod validation
+- **Routing:** React Router DOM v7
+- **Charts:** Recharts
+- **Authentication:** Better Auth integration
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js 18+ 
+- npm or yarn
+- Backend API server running separately (see Backend Configuration below)
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. Install Dependencies
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Configure Environment
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Create a `.env` file in the root directory:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+# Backend API URL
+VITE_API_BASE_URL=http://localhost:6000/api
+
+# Add other environment variables as needed
 ```
+
+### 3. Development Server
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173`
+
+### 4. Build for Production
+
+```bash
+npm run build
+```
+
+Build output will be in the `dist/` directory.
+
+### 5. Preview Production Build
+
+```bash
+npm run preview
+```
+
+## Backend Configuration
+
+This frontend application requires a separate backend API server. The backend repository is maintained separately and should implement the API contracts defined in `API_MAPPING_DOCUMENTATION.md`.
+
+**Backend API Endpoints:**
+- Employee management: `/api/employees`
+- Purchase orders: `/api/purchase-orders`
+- Invoices: `/api/invoices`
+- Proposals: `/api/proposals`
+- Quotations: `/api/quotations`
+- BAST documents: `/api/bast`
+- Clients: `/api/clients`
+
+See `API_MAPPING_DOCUMENTATION.md` for complete API specifications.
+
+## Project Structure
+
+```
+coreapps-app/
+├── src/
+│   ├── api/              # API client services
+│   ├── components/       # Reusable UI components
+│   ├── lib/             # Utilities and helpers
+│   ├── pages/           # Page components
+│   ├── App.tsx          # Main application component
+│   └── main.tsx         # Application entry point
+├── public/              # Static assets
+├── dist/                # Production build output
+└── package.json         # Dependencies and scripts
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+## Documentation
+
+- **API Contract:** See `API_MAPPING_DOCUMENTATION.md` for complete API specifications
+- **Implementation Plan:** See `alugra_erp_implementation_plan.md` for system architecture and requirements
+
+## Features
+
+- **HR Module:** Employee management, document tracking, position management
+- **Finance Module:** Invoicing, purchase orders, quotations, proposals
+- **Project Management:** Project tracking, document linking, profit/loss analysis
+- **Document Generation:** PDF generation for invoices, POs, proposals, BAST
+- **Authentication:** Secure login with Better Auth
+
+## Development Notes
+
+- This is a **frontend-only** repository
+- Backend API is maintained in a separate repository
+- Ensure `VITE_API_BASE_URL` environment variable is properly configured
+- API contracts must match the specifications in `API_MAPPING_DOCUMENTATION.md`
+
+## License
+
+Proprietary - PT. Alugra Digital Indonesia
