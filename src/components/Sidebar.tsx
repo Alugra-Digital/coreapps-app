@@ -10,7 +10,6 @@ import {
   Settings,
   Search,
   ChevronDown,
-  LayoutGrid,
   PanelLeft,
   ChevronUp,
   LogOut,
@@ -64,12 +63,11 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo Header */}
       <div className="flex items-center gap-3 px-2 py-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-          <LayoutGrid className="h-5 w-5" />
-        </div>
-        <span className="text-lg font-bold tracking-tight text-slate-900 dark:text-foreground">
-          Rubbick
-        </span>
+        <img
+          src="/alugra_logo.png"
+          alt="Alugra"
+          className="h-8 object-contain object-left"
+        />
         <Button
           variant="ghost"
           size="icon"
