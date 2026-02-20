@@ -17,7 +17,7 @@ const payments = [
   {
     id: "PAY-9921",
     source: "Bank Mandiri Transfer",
-    amount: "$12,400.00",
+    amount: "Rp 192,2 jt",
     date: "Today, 10:45 AM",
     method: "Wire Transfer" as const,
     status: "Completed" as const,
@@ -25,7 +25,7 @@ const payments = [
   {
     id: "PAY-9922",
     source: "Corporate Visa XXXX-4211",
-    amount: "$2,150.40",
+    amount: "Rp 33,3 jt",
     date: "Today, 09:12 AM",
     method: "Credit Card" as const,
     status: "Processing" as const,
@@ -33,7 +33,7 @@ const payments = [
   {
     id: "PAY-9923",
     source: "BCA Corporate Billing",
-    amount: "$8,500.00",
+    amount: "Rp 131,75 jt",
     date: "Yesterday, 04:30 PM",
     method: "Wire Transfer" as const,
     status: "Completed" as const,
@@ -41,7 +41,7 @@ const payments = [
   {
     id: "PAY-9924",
     source: "OCBC NISP Direct",
-    amount: "$3,200.00",
+    amount: "Rp 49,6 jt",
     date: "Yesterday, 02:15 PM",
     method: "Direct Debit" as const,
     status: "Completed" as const,
@@ -49,7 +49,7 @@ const payments = [
   {
     id: "PAY-9925",
     source: "Amex Business Centurion",
-    amount: "$5,800.00",
+    amount: "Rp 89,9 jt",
     date: "Feb 02, 2024",
     method: "Credit Card" as const,
     status: "Failed" as const,
@@ -57,7 +57,7 @@ const payments = [
   {
     id: "PAY-9926",
     source: "DBS Treasury Account",
-    amount: "$45,000.00",
+    amount: "Rp 697,5 jt",
     date: "Feb 01, 2024",
     method: "Wire Transfer" as const,
     status: "Completed" as const,
@@ -95,7 +95,7 @@ export default function PaymentPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <PaymentStatCard
           title="Total Processed"
-          value="$284.5k"
+          value="Rp 4,41 M"
           change="+8.2%"
           trend="up"
           icon={<CreditCard className="h-4 w-4" />}
@@ -103,7 +103,7 @@ export default function PaymentPage() {
         />
         <PaymentStatCard
           title="Pending Settlement"
-          value="$12,840"
+          value="Rp 199 jt"
           description="03 items awaiting clearance"
           icon={<Activity className="h-4 w-4" />}
           color="#f59e0b"
