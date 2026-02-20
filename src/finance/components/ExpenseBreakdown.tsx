@@ -72,7 +72,7 @@ export function ExpenseBreakdown({ className }: { className?: string }) {
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-2xl font-bold text-slate-900 dark:text-foreground">
-              $124.2k
+              Rp 1,93 M
             </span>
             <span className="text-[10px] text-slate-400 dark:text-muted-foreground uppercase font-medium">
               Total Spent

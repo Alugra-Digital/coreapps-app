@@ -53,7 +53,7 @@ export default function FinancePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <FinanceMetricCard
           title="Total Revenue"
-          value="$428.5k"
+          value="Rp 6,64 M"
           change="+12.4%"
           trend="up"
           icon={<DollarSign className="h-4 w-4" />}
@@ -61,7 +61,7 @@ export default function FinancePage() {
         />
         <FinanceMetricCard
           title="Operational Expenses"
-          value="$124.2k"
+          value="Rp 1,93 M"
           change="-2.1%"
           trend="down"
           icon={<ExternalLink className="h-4 w-4" />}
@@ -69,7 +69,7 @@ export default function FinancePage() {
         />
         <FinanceMetricCard
           title="Net Profit"
-          value="$304.3k"
+          value="Rp 4,72 M"
           change="+15.8%"
           trend="up"
           icon={<ShieldCheck className="h-4 w-4" />}

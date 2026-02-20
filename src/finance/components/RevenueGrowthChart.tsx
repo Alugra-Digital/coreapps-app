@@ -50,7 +50,7 @@ export function RevenueGrowthChart({ className }: { className?: string }) {
         <div className="flex flex-col gap-1 mb-6">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-foreground">
-              $98,240
+              Rp 1,52 M
             </span>
             <Badge
               variant="outline"
@@ -89,7 +89,7 @@ export function RevenueGrowthChart({ className }: { className?: string }) {
                 tickLine={false}
                 tick={{ fill: "#94a3b8", fontSize: 12 }}
                 dx={-10}
-                tickFormatter={(value) => `$${value / 1000}k`}
+                tickFormatter={(value) => `Rp ${((value * 15.5) / 1000).toLocaleString('id-ID')}jt`}
               />
               <RechartsTooltip
                 cursor={{ stroke: "#10b981", strokeWidth: 1 }}
@@ -98,7 +98,7 @@ export function RevenueGrowthChart({ className }: { className?: string }) {
                     const data = payload[0].payload;
                     return (
                       <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-xl border-none">
-                        {data?.month} : ${payload[0].value?.toLocaleString()}
+                        {data?.month} : Rp {((payload[0].value ?? 0) * 15500).toLocaleString('id-ID')}
                       </div>
                     );
                   }
