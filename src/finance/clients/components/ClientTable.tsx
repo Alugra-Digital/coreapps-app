@@ -62,8 +62,8 @@ export function ClientTable({
 
   const filtered = clients.filter(
     (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.companyName.toLowerCase().includes(search.toLowerCase())
+      (c.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.companyName ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {

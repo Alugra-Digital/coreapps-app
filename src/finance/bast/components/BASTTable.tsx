@@ -75,10 +75,10 @@ export function BASTTable({
 
   const filtered = basts.filter(
     (b) =>
-      b.documentInfo.bastNumber.toLowerCase().includes(search.toLowerCase()) ||
-      b.coverInfo.companyName.toLowerCase().includes(search.toLowerCase()) ||
-      b.coverInfo.jobOffer.toLowerCase().includes(search.toLowerCase()) ||
-      b.documentInfo.relatedPoOrInvoice?.toLowerCase().includes(search.toLowerCase())
+      (b.documentInfo.bastNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.coverInfo.companyName ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.coverInfo.jobOffer ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.documentInfo.relatedPoOrInvoice ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {

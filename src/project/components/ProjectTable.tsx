@@ -76,9 +76,9 @@ export function ProjectTable({
 
   const filtered = projects.filter((p) => {
     const matchSearch =
-      p.identity.projectId.toLowerCase().includes(search.toLowerCase()) ||
-      p.identity.namaProject.toLowerCase().includes(search.toLowerCase()) ||
-      p.identity.clientName.toLowerCase().includes(search.toLowerCase());
+      (p.identity.projectId ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.identity.namaProject ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.identity.clientName ?? "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || p.identity.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -188,13 +188,12 @@ export function ProjectTable({
                   </TableCell>
                   <TableCell className="py-3">
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                        p.identity.status === "completed"
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${p.identity.status === "completed"
                           ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
                           : p.identity.status === "on_progress"
                             ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500"
                             : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
-                      }`}
+                        }`}
                     >
                       {STATUS_LABELS[p.identity.status] ?? p.identity.status}
                     </span>

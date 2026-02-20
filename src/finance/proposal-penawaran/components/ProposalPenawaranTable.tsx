@@ -78,9 +78,9 @@ export function ProposalPenawaranTable({
 
   const filtered = proposals.filter((p) => {
     const matchSearch =
-      p.coverInfo.jobOffer.toLowerCase().includes(search.toLowerCase()) ||
-      p.proposalNumber.toLowerCase().includes(search.toLowerCase()) ||
-      p.clientInfo.clientName.toLowerCase().includes(search.toLowerCase());
+      (p.coverInfo.jobOffer ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.proposalNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.clientInfo.clientName ?? "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -188,15 +188,14 @@ export function ProposalPenawaranTable({
                   </TableCell>
                   <TableCell className="py-3">
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                        p.status === "accepted"
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${p.status === "accepted"
                           ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
                           : p.status === "rejected"
                             ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500"
                             : p.status === "sent"
                               ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500"
                               : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
-                      }`}
+                        }`}
                     >
                       {STATUS_LABELS[p.status] ?? p.status}
                     </span>

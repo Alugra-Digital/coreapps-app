@@ -67,8 +67,8 @@ export function InventoryStockTable({
 
   const filtered = items.filter(
     (i) =>
-      i.code.toLowerCase().includes(search.toLowerCase()) ||
-      i.name.toLowerCase().includes(search.toLowerCase())
+      (i.code ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (i.name ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {

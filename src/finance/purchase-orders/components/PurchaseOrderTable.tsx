@@ -72,9 +72,9 @@ export function PurchaseOrderTable({
 
   const filtered = purchaseOrders.filter(
     (p) =>
-      p.orderInfo.poNumber.toLowerCase().includes(search.toLowerCase()) ||
-      p.vendorInfo.vendorName.toLowerCase().includes(search.toLowerCase()) ||
-      p.orderInfo.docReference?.toLowerCase().includes(search.toLowerCase())
+      (p.orderInfo.poNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.vendorInfo.vendorName ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.orderInfo.docReference ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDeleteConfirm = async () => {
