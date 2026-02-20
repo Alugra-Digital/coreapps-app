@@ -6,8 +6,10 @@ import {
   Pencil,
   Trash2,
   FileText,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +49,8 @@ interface InvoiceTableProps {
   onAddOpenChange: (open: boolean) => void;
 }
 
+const PAGE_SIZE = 5;
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -63,6 +67,7 @@ export function InvoiceTable({
   onAddOpenChange,
 }: InvoiceTableProps) {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
   const [pdfInvoice, setPdfInvoice] = useState<Invoice | null>(null);
@@ -76,6 +81,20 @@ export function InvoiceTable({
       (i.billingInfo.companyName ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (i.invoiceInfo.invoiceName ?? "").toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(1);
+  }, [totalPages, currentPage]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteInvoiceId) return;
@@ -94,6 +113,11 @@ export function InvoiceTable({
     onRefresh();
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
   const handleEditSuccess = () => {
     setEditInvoice(null);
     onRefresh();
@@ -108,7 +132,7 @@ export function InvoiceTable({
 
   return (
     <>
-      <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
+      <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow flex flex-col h-full min-h-0">
         <div className="flex justify-between items-center mb-3 px-2">
           <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
             <FileText className="h-4 w-4" /> Invoice Repository
@@ -119,7 +143,7 @@ export function InvoiceTable({
               <input
                 placeholder="Search Invoice #, Client..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-1 pl-8 pr-4 text-[10px] focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none w-48 text-foreground"
               />
             </div>
@@ -139,7 +163,8 @@ export function InvoiceTable({
           </div>
         </div>
 
-        <CardContent className="p-0 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        <CardContent className="p-0 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-auto">
           <Table>
             <TableHeader className="bg-slate-50/50 dark:bg-white/5">
               <TableRow className="hover:bg-transparent border-slate-100 dark:border-white/5">
@@ -162,7 +187,7 @@ export function InvoiceTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((inv) => (
+              {paginated.map((inv) => (
                 <TableRow
                   key={inv.id}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
@@ -221,6 +246,35 @@ export function InvoiceTable({
               ))}
             </TableBody>
           </Table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-white/5">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                Page {currentPage} of {totalPages} ({filtered.length} total)
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-[10px]"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage <= 1}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" /> Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-[10px]"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                >
+                  Next <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

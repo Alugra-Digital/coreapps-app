@@ -232,9 +232,9 @@ export default function InvoicePage() {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 xl:items-stretch xl:min-h-[360px]">
         {/* Invoice Table */}
-        <div className="xl:col-span-8">
+        <div className="xl:col-span-8 flex flex-col min-h-0">
           <InvoiceTable
             invoices={invoices}
             onRefresh={loadInvoices}
@@ -245,8 +245,8 @@ export default function InvoicePage() {
         </div>
 
         {/* Activity Card */}
-        <div className="xl:col-span-4">
-          <InvoiceActivity className="h-full" />
+        <div className="xl:col-span-4 flex flex-col min-h-0">
+          <InvoiceActivity className="h-full min-h-0" />
         </div>
       </div>
 
