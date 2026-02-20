@@ -124,12 +124,11 @@ export function Sidebar({ className }: SidebarProps) {
                   hasChevron={hasChildren}
                   active={isParentActive}
                 >
-                  {childrenToShow.map((child, idx) => (
+                  {childrenToShow.map((child) => (
                     <SidebarSubItem
                       key={child.permissionKey}
                       to={child.path}
                       label={child.label}
-                      isLast={idx === childrenToShow.length - 1}
                       active={location.pathname === child.path}
                     />
                   ))}
@@ -331,8 +330,9 @@ function SidebarItem({
       </Link>
 
       {children && (
-        <div className="hidden group-hover/menu:block pl-4 mt-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="absolute left-4 top-0 bottom-0 w-px bg-sidebar-border" />
+        <div className="hidden group-hover/menu:block pl-4 mt-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200 relative">
+          {/* Vertical line: extends up (-top-1) to bridge mt-1 gap and connect to parent */}
+          <div className="absolute left-4 -top-1 bottom-0 w-px bg-sidebar-border" />
           {children}
         </div>
       )}
@@ -342,12 +342,11 @@ function SidebarItem({
 
 function SidebarSubItem({
   label,
-  isLast,
   to = "#",
   active = false,
 }: {
   label: string;
-  isLast: boolean;
+  isLast?: boolean;
   to?: string;
   active?: boolean;
 }) {
@@ -356,15 +355,8 @@ function SidebarSubItem({
       to={to}
       className="relative flex items-center h-8 group cursor-pointer pl-6"
     >
-      {/* Vertical line: Stops halfway (at the junction) if it's the last item */}
-      <div
-        className={cn(
-          "absolute -left-px top-0 w-px bg-sidebar-border",
-          isLast ? "h-4" : "h-full",
-        )}
-      />
-      {/* Horizontal line: Connects the vertical line to the label area */}
-      <div className="absolute -left-px top-4 w-4 h-px bg-sidebar-border" />
+      {/* Horizontal line: Connects from parent's vertical line to the label */}
+      <div className="absolute left-0 top-4 w-6 h-px bg-sidebar-border" />
 
       <span
         className={cn(
