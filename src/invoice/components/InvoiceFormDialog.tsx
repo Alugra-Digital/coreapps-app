@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -105,6 +105,18 @@ export function InvoiceFormDialog({
   onSuccess,
 }: InvoiceFormDialogProps) {
   const isEdit = !!invoice;
+  const wizardSteps = [
+    { value: "company", label: "Company" },
+    { value: "invoice", label: "Invoice Info" },
+    { value: "billing", label: "Billing" },
+    { value: "items", label: "Line Items" },
+    { value: "payment", label: "Payment" },
+    { value: "approval", label: "Approval" },
+    { value: "notes", label: "Notes" },
+  ] as const;
+  const [activeStep, setActiveStep] = useState<(typeof wizardSteps)[number]["value"]>(
+    "company"
+  );
 
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceFormSchema),
@@ -207,6 +219,12 @@ export function InvoiceFormDialog({
     }
   }, [invoice, open, form]);
 
+  useEffect(() => {
+    if (open) {
+      setActiveStep("company");
+    }
+  }, [open]);
+
   const onSubmit = async (values: InvoiceFormValues) => {
     const payload = {
       companyInfo: values.companyInfo,
@@ -233,12 +251,26 @@ export function InvoiceFormDialog({
     onSuccess();
   };
 
+  const currentStepIndex = wizardSteps.findIndex((step) => step.value === activeStep);
+  const isFirstStep = currentStepIndex <= 0;
+  const isLastStep = currentStepIndex >= wizardSteps.length - 1;
+
+  const goToPreviousStep = () => {
+    if (isFirstStep) return;
+    setActiveStep(wizardSteps[currentStepIndex - 1].value);
+  };
+
+  const goToNextStep = () => {
+    if (isLastStep) return;
+    setActiveStep(wizardSteps[currentStepIndex + 1].value);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle>
-            {isEdit ? "Edit Invoice" : "Add Invoice"}
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col p-0 rounded-sm overflow-hidden">
+        <DialogHeader className="px-6 py-5 border-b">
+          <DialogTitle className="text-base">
+            {isEdit ? "Edit Invoice" : "Create Invoice"}
           </DialogTitle>
         </DialogHeader>
 
@@ -248,35 +280,48 @@ export function InvoiceFormDialog({
             className="flex flex-col flex-1 overflow-hidden"
           >
             <Tabs
-              defaultValue="company"
+              value={activeStep}
+              onValueChange={(value) =>
+                setActiveStep(value as (typeof wizardSteps)[number]["value"])
+              }
               className="flex-1 flex flex-col gap-4 overflow-hidden"
             >
-              <TabsList className="mx-6 px-2 flex gap-1 shrink-0 flex-wrap">
-                <TabsTrigger value="company" className="text-xs px-2 py-1.5">
-                  Company
-                </TabsTrigger>
-                <TabsTrigger value="invoice" className="text-xs px-2 py-1.5">
-                  Invoice Info
-                </TabsTrigger>
-                <TabsTrigger value="billing" className="text-xs px-2 py-1.5">
-                  Billing
-                </TabsTrigger>
-                <TabsTrigger value="items" className="text-xs px-2 py-1.5">
-                  Line Items
-                </TabsTrigger>
-                <TabsTrigger value="payment" className="text-xs px-2 py-1.5">
-                  Payment
-                </TabsTrigger>
-                <TabsTrigger value="approval" className="text-xs px-2 py-1.5">
-                  Approval
-                </TabsTrigger>
-                <TabsTrigger value="notes" className="text-xs px-2 py-1.5">
-                  Notes
-                </TabsTrigger>
-              </TabsList>
+              <div className="px-6 pt-4 pb-3">
+                <TabsList className="grid h-auto w-full grid-cols-2 md:grid-cols-7 gap-2 bg-transparent p-0">
+                  {wizardSteps.map((step, index) => {
+                    const isDone = currentStepIndex > index;
+                    const isActive = currentStepIndex === index;
+                    return (
+                      <TabsTrigger
+                        key={step.value}
+                        value={step.value}
+                        className="rounded-sm border px-3 py-2 h-auto bg-white dark:bg-background data-[state=active]:border-primary data-[state=active]:shadow-none"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`h-4 w-4 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                              isDone
+                                ? "bg-emerald-600 text-white"
+                                : isActive
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"
+                            }`}
+                          >
+                            {index + 1}
+                          </span>
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {step.label}
+                          </span>
+                        </div>
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </div>
 
-              <ScrollArea className="flex-1 px-6 pb-4">
-                <TabsContent value="company" className="mt-0 space-y-4">
+              <ScrollArea className="flex-1 px-6 pt-2 pb-4">
+                <TabsContent value="company" className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FormField
                     control={form.control}
                     name="companyInfo.letterhead"
@@ -322,19 +367,6 @@ export function InvoiceFormDialog({
                   />
                   <FormField
                     control={form.control}
-                    name="companyInfo.address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Alamat Lengkap</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} rows={2} className="text-sm resize-none" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
                     name="companyInfo.phone"
                     render={({ field }) => (
                       <FormItem>
@@ -346,14 +378,29 @@ export function InvoiceFormDialog({
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="companyInfo.address"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel className="text-xs">Alamat Lengkap</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} rows={3} className="text-sm resize-none" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="invoice" className="mt-0 space-y-4">
+                <TabsContent value="invoice" className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FormField
                     control={form.control}
                     name="invoiceInfo.invoiceName"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel className="text-xs">Nama Invoice</FormLabel>
                         <FormControl>
                           <Input {...field} className="h-9 text-sm" />
@@ -414,14 +461,16 @@ export function InvoiceFormDialog({
                       </FormItem>
                     )}
                   />
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="billing" className="mt-0 space-y-4">
+                <TabsContent value="billing" className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FormField
                     control={form.control}
                     name="billingInfo.companyName"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel className="text-xs">Nama Lengkap Perusahaan</FormLabel>
                         <FormControl>
                           <Input {...field} className="h-9 text-sm" />
@@ -434,10 +483,10 @@ export function InvoiceFormDialog({
                     control={form.control}
                     name="billingInfo.address"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel className="text-xs">Alamat Lengkap Perusahaan</FormLabel>
                         <FormControl>
-                          <Textarea {...field} rows={2} className="text-sm resize-none" />
+                          <Textarea {...field} rows={3} className="text-sm resize-none" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -495,9 +544,10 @@ export function InvoiceFormDialog({
                       </FormItem>
                     )}
                   />
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="items" className="mt-0 space-y-4">
+                <TabsContent value="items" className="mt-0 space-y-3">
                   <div className="flex justify-between items-center">
                     <FormLabel className="text-xs">Detail Pesanan</FormLabel>
                     <Button
@@ -514,7 +564,7 @@ export function InvoiceFormDialog({
                     {lineItems.map((_, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-12 gap-2 p-2 rounded border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5"
+                        className="grid grid-cols-12 gap-2 p-2"
                       >
                         <div className="col-span-12 font-medium text-xs text-slate-600 dark:text-slate-400">
                           Item #{index + 1}
@@ -650,7 +700,8 @@ export function InvoiceFormDialog({
                   </div>
                 </TabsContent>
 
-                <TabsContent value="payment" className="mt-0 space-y-4">
+                <TabsContent value="payment" className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FormField
                     control={form.control}
                     name="paymentInfo.bank"
@@ -707,7 +758,7 @@ export function InvoiceFormDialog({
                     control={form.control}
                     name="paymentInfo.npwp"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel className="text-xs">NPWP</FormLabel>
                         <FormControl>
                           <Input {...field} className="h-9 text-sm" />
@@ -716,9 +767,11 @@ export function InvoiceFormDialog({
                       </FormItem>
                     )}
                   />
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="approval" className="mt-0 space-y-4">
+                <TabsContent value="approval" className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <FormField
                     control={form.control}
                     name="approval.position"
@@ -749,7 +802,7 @@ export function InvoiceFormDialog({
                     control={form.control}
                     name="approval.signatureUrl"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="md:col-span-2">
                         <FormLabel className="text-xs">TTD (Signature URL)</FormLabel>
                         <FormControl>
                           <Input
@@ -762,9 +815,10 @@ export function InvoiceFormDialog({
                       </FormItem>
                     )}
                   />
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="notes" className="mt-0 space-y-4">
+                <TabsContent value="notes" className="mt-0">
                   <FormField
                     control={form.control}
                     name="notes"
@@ -772,7 +826,7 @@ export function InvoiceFormDialog({
                       <FormItem>
                         <FormLabel className="text-xs">Notes / Terms and Conditions</FormLabel>
                         <FormControl>
-                          <Textarea {...field} rows={4} className="text-sm resize-none" />
+                          <Textarea {...field} rows={6} className="text-sm resize-none" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -783,12 +837,21 @@ export function InvoiceFormDialog({
             </Tabs>
 
             <DialogFooter className="p-6 pt-4 border-t">
-              <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
+              <Button variant="outline" type="button" className="mr-auto" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button variant="outline" type="button" onClick={goToPreviousStep} disabled={isFirstStep}>
+                Back
               </Button>
+              {isLastStep ? (
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+                </Button>
+              ) : (
+                <Button type="button" onClick={goToNextStep}>
+                  Next
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>

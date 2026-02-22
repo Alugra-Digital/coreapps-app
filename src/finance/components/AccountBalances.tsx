@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   MoreHorizontal,
   ShieldCheck,
@@ -8,7 +9,14 @@ import {
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const accountsData = [
   {
@@ -49,6 +57,40 @@ const accountsData = [
 ];
 
 export function AccountBalances({ className }: { className?: string }) {
+  const [sortMode, setSortMode] = useState<"default" | "highest" | "lowest">(
+    "default",
+  );
+  const [visibleCount, setVisibleCount] = useState<number>(accountsData.length);
+
+  const parseRupiahText = (value: string) => {
+    const normalized = value.toLowerCase().replace("rp", "").trim();
+    const amount = Number.parseFloat(normalized.replace(",", "."));
+    if (Number.isNaN(amount)) return 0;
+    if (normalized.endsWith("m")) return amount * 1_000_000_000;
+    if (normalized.endsWith("jt")) return amount * 1_000_000;
+    return amount;
+  };
+
+  const displayedAccounts = useMemo(() => {
+    const accounts = [...accountsData];
+    if (sortMode === "highest") {
+      accounts.sort(
+        (a, b) => parseRupiahText(b.balance) - parseRupiahText(a.balance),
+      );
+    } else if (sortMode === "lowest") {
+      accounts.sort(
+        (a, b) => parseRupiahText(a.balance) - parseRupiahText(b.balance),
+      );
+    }
+    return accounts.slice(0, visibleCount);
+  }, [sortMode, visibleCount]);
+
+  const handleManageAllAccounts = () => {
+    setSortMode("default");
+    setVisibleCount(accountsData.length);
+    toast.success("All accounts are now visible");
+  };
+
   return (
     <Card
       className={cn(
@@ -60,14 +102,66 @@ export function AccountBalances({ className }: { className?: string }) {
         <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
           Account Balances
         </span>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400">
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-slate-400"
+              aria-label="Account balance actions"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={() => {
+                setSortMode("highest");
+                toast.success("Sorted by highest balance");
+              }}
+            >
+              Sort by Highest Balance
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setSortMode("lowest");
+                toast.success("Sorted by lowest balance");
+              }}
+            >
+              Sort by Lowest Balance
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setVisibleCount(3);
+                toast.success("Showing top 3 accounts");
+              }}
+            >
+              Show Top 3 Accounts
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setVisibleCount(accountsData.length);
+                toast.success("Showing all accounts");
+              }}
+            >
+              Show All Accounts
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                setSortMode("default");
+                setVisibleCount(accountsData.length);
+                toast.success("Account view reset");
+              }}
+            >
+              Reset View
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <CardContent className="p-6 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col gap-6 flex-1">
         <div className="flex flex-col gap-4 overflow-y-auto pr-2 no-scrollbar">
-          {accountsData.map((account) => (
+          {displayedAccounts.map((account) => (
             <div
               key={account.id}
               className="flex gap-4 group/item cursor-pointer"
@@ -97,6 +191,7 @@ export function AccountBalances({ className }: { className?: string }) {
         <Button
           variant="outline"
           className="w-full h-8 text-xs font-medium bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-white/10 transition-all"
+          onClick={handleManageAllAccounts}
         >
           Manage All Accounts
         </Button>

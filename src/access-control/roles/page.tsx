@@ -1,5 +1,6 @@
 import { Plus, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { RoleTable } from "./components/RoleTable";
 import { Button } from "@/components/ui/button";
 import { getRolesPaginated } from "@/api/roles";
@@ -8,6 +9,7 @@ import type { Role } from "./types";
 const PAGE_SIZE = 10;
 
 export default function RolesPage() {
+  const navigate = useNavigate();
   const [roles, setRoles] = useState<Role[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -58,13 +60,23 @@ export default function RolesPage() {
             Manage roles and assign menu permissions for RBAC.
           </p>
         </div>
-        <Button
-          className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
-          onClick={() => setIsAddOpen(true)}
-          data-testid="add-role-btn"
-        >
-          <Plus className="h-4 w-4" /> Add Role
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="h-9 text-xs font-semibold"
+            onClick={() => navigate("/access-control/access-roles")}
+            data-testid="go-access-roles-btn"
+          >
+            Access Roles
+          </Button>
+          <Button
+            className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
+            onClick={() => setIsAddOpen(true)}
+            data-testid="add-role-btn"
+          >
+            <Plus className="h-4 w-4" /> Add Role
+          </Button>
+        </div>
       </div>
 
       {loading && (

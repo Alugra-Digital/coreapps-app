@@ -15,6 +15,9 @@ import {
   LogOut,
   Users,
   Briefcase,
+  Table,
+  User,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -221,6 +224,31 @@ export function Sidebar({ className }: SidebarProps) {
             icon={<Settings className="h-[18px] w-[18px]" />}
             label="Settings"
             active={location.pathname === "/settings"}
+          />
+        </div>
+
+        {/* Components Section */}
+        <div className='flex flex-col gap-1'>
+          <div className='px-3 mb-2 mt-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500'>
+            Components UI
+          </div>
+          <SidebarItem
+            to='/components-ui/modal'
+            icon={<MessageSquare className='h-[18px] w-[18px]' />}
+            label='Modal'
+            active={location.pathname === '/components-ui/modal'}
+          />
+          <SidebarItem
+            to='/components-ui/loader'
+            icon={<MessageSquare className='h-[18px] w-[18px]' />}
+            label='Loader'
+            active={location.pathname === '/components-ui/loader'}
+          />
+          <SidebarItem
+            to='/components-ui/role-access'
+            icon={<Lock className='h-[18px] w-[18px]' />}
+            label='Role-Access'
+            active={location.pathname === '/components-ui/role-access'}
           />
         </div>
       </div>
