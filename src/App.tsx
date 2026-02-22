@@ -27,6 +27,7 @@ import BASTPage from "./finance/bast/page";
 import PerpajakanPage from "./finance/perpajakan/page";
 import QuotationsPage from "./finance/quotations/page";
 import ProposalPenawaranPage from "./finance/proposal-penawaran/page";
+import NewTransactionPage from "./finance/new-transaction/page";
 import ProjectPage from "./project/page";
 import RolesPage from "./access-control/roles/page";
 import UsersPage from "./access-control/users/page";
@@ -66,6 +67,10 @@ function App() {
               <Route path="/finance/clients" element={<ClientsPage />} />
               <Route path="/finance/vendors" element={<VendorsPage />} />
               <Route path="/finance/quotations" element={<QuotationsPage />} />
+              <Route
+                path="/finance/new-transaction"
+                element={<NewTransactionPage />}
+              />
               <Route
                 path="/finance/proposal-penawaran"
                 element={<ProposalPenawaranPage />}

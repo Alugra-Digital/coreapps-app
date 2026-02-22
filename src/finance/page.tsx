@@ -11,6 +11,7 @@ import { AccountBalances } from "./components/AccountBalances";
 import { TransactionHistoryTable } from "./components/TransactionHistoryTable";
 import { ExpenseBreakdown } from "./components/ExpenseBreakdown";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function FinancePage() {
   return (
@@ -33,8 +34,13 @@ export default function FinancePage() {
           >
             <FileDown className="h-4 w-4" /> Export Report
           </Button>
-          <Button className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all">
-            <Plus className="h-4 w-4" /> New Transaction
+          <Button
+            asChild
+            className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
+          >
+            <Link to="/finance/new-transaction">
+              <Plus className="h-4 w-4" /> New Transaction
+            </Link>
           </Button>
         </div>
       </div>

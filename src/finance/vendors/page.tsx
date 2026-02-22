@@ -50,7 +50,6 @@ export default function VendorsPage() {
     ? Math.round((withPicCount / displayVendors.length) * 100)
     : 0;
   const spotlightVendor = displayVendors[0];
-  const onboardingQueue = displayVendors.slice(0, 4);
   const approvalQueue = displayVendors.slice(0, 5);
   const paymentTerms = [
     { label: "Net 30", value: 48, color: "bg-blue-500" },
@@ -87,7 +86,7 @@ export default function VendorsPage() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <Card className="xl:col-span-8 shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
+        <Card className="xl:col-span-8 h-full shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
           <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div>
@@ -137,7 +136,7 @@ export default function VendorsPage() {
           </CardContent>
         </Card>
 
-        <Card className="xl:col-span-4 shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
+        <Card className="xl:col-span-4 h-full shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
           <div className="flex items-center justify-between mb-2 px-1">
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               Onboarding Funnel
@@ -146,7 +145,7 @@ export default function VendorsPage() {
               Dummy
             </span>
           </div>
-          <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] space-y-3">
+          <CardContent className="h-full p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] space-y-3">
             <FunnelStep label="Submitted" value={24} color="bg-blue-500" />
             <FunnelStep label="Verification" value={14} color="bg-amber-500" />
             <FunnelStep label="Negotiation" value={8} color="bg-violet-500" />
@@ -301,38 +300,6 @@ export default function VendorsPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                Compliance Health
-              </span>
-            </div>
-            <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] space-y-3">
-              <HealthRow label="Complete Profile" value={67} color="bg-emerald-500" />
-              <HealthRow label="Bank Verified" value={58} color="bg-blue-500" />
-              <HealthRow label="Tax Document Ready" value={41} color="bg-amber-500" />
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                This Week Intake
-              </span>
-            </div>
-            <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] space-y-2">
-              {onboardingQueue.map((vendor, idx) => (
-                <div key={vendor.id} className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-600 dark:text-slate-400 truncate max-w-[70%]">
-                    {vendor.companyName}
-                  </span>
-                  <span className="font-semibold text-slate-900 dark:text-foreground">
-                    D+{idx + 1}
-                  </span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
@@ -353,7 +320,7 @@ function CompactMetric({
   color: string;
 }) {
   return (
-    <div className="rounded-sm border border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 p-3">
+    <div className="h-full rounded-sm border border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/5 p-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
           {label}
@@ -409,8 +376,8 @@ function KpiStripCard({
   icon: React.ReactNode;
 }) {
   return (
-    <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
-      <CardContent className="p-3 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5">
+    <Card className="h-full shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
+      <CardContent className="h-full p-3 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 flex flex-col">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
             {title}
@@ -421,7 +388,7 @@ function KpiStripCard({
         </div>
         <p className="text-xl font-bold text-slate-900 dark:text-foreground mt-2">{value}</p>
         <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
-        <div className="h-1.5 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden mt-2.5">
+        <div className="h-1.5 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden mt-auto pt-0">
           <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(progress, 100))}%`, backgroundColor: color }} />
         </div>
       </CardContent>
@@ -445,28 +412,6 @@ function DistributionRow({
         <span className="font-semibold text-slate-900 dark:text-foreground">{value}%</span>
       </div>
       <div className="h-2 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
-      </div>
-    </div>
-  );
-}
-
-function HealthRow({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-[11px]">
-        <span className="text-slate-600 dark:text-slate-400">{label}</span>
-        <span className="font-semibold text-slate-900 dark:text-foreground">{value}%</span>
-      </div>
-      <div className="h-1.5 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
       </div>
     </div>

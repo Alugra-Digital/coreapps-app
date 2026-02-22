@@ -116,7 +116,7 @@ export default function ClientsPage() {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm hover:shadow-md transition-shadow">
+            <Card className="h-full shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-2 px-1">
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                   Client Portfolio Mix
@@ -143,7 +143,7 @@ export default function ClientsPage() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm hover:shadow-md transition-shadow">
+            <Card className="h-full shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-2 px-1">
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                   Follow-up Queue
@@ -152,7 +152,7 @@ export default function ClientsPage() {
                   5 Items
                 </span>
               </div>
-              <CardContent className="p-0 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] divide-y divide-slate-100 dark:divide-white/5">
+              <CardContent className="h-full p-0 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] divide-y divide-slate-100 dark:divide-white/5">
                 {followUpQueue.map((client, index) => (
                   <div key={client.id} className="p-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -354,7 +354,7 @@ function ClientStatCard({
   const remainingToTarget = Math.max(targetValue - safeProgress, 0);
 
   return (
-    <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
+    <Card className="h-full shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center mb-2 px-1">
         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">
           {title}
@@ -366,8 +366,8 @@ function ClientStatCard({
           {icon}
         </div>
       </div>
-      <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-col gap-3">
+      <CardContent className="h-full p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        <div className="h-full flex flex-col gap-3 justify-between">
           <div className="text-2xl font-bold text-slate-900 dark:text-foreground leading-none">
             {value}
           </div>
