@@ -17,8 +17,17 @@ interface ProjectViewDialogProps {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  PIPELINE: "Pipeline",
+  NEGOTIATION: "Negosiasi",
+  WON: "Won",
+  LOST: "Lost",
+  ON_PROGRESS: "On Progress",
   on_progress: "On Progress",
+  ON_HOLD: "On Hold",
+  READY_TO_CLOSE: "Ready to Close",
+  COMPLETED: "Completed",
   completed: "Completed",
+  CANCELLED: "Cancelled",
   cancelled: "Cancelled",
 };
 
@@ -37,7 +46,11 @@ export function ProjectViewDialog({
 }: ProjectViewDialogProps) {
   if (!project) return null;
 
-  const { identity, documentRelations, finance, documents } = project;
+  const { identity, documentRelations, documents } = project;
+  const expenses = project.expenses ?? [];
+  const preCost = expenses.filter((e) => e.phase === "PRE_COST");
+  const onGoing = expenses.filter((e) => e.phase === "ON_GOING" || !e.phase);
+  const totalExpense = expenses.reduce((s, e) => s + (e.amount || 0), 0);
 
   return (
     <Dialog open={!!project} onOpenChange={onOpenChange}>
@@ -72,6 +85,10 @@ export function ProjectViewDialog({
                     {identity.scopeProject}
                   </p>
                 )}
+                <p>
+                  <span className="text-slate-500">Price / Contract Value:</span>{" "}
+                  <span className="font-medium">{formatCurrency(identity.price ?? 0)}</span>
+                </p>
                 <p>
                   <span className="text-slate-500">Start - End:</span>{" "}
                   {identity.startDate} - {identity.endDate}
@@ -133,26 +150,41 @@ export function ProjectViewDialog({
               </div>
             </section>
 
-            {/* Finance */}
+            {/* Finance — Expense Summary */}
             <section>
               <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
                 Keuangan Project
               </h3>
               <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-4 space-y-2 text-sm">
                 <p>
-                  <span className="text-slate-500">Income:</span>{" "}
-                  <span className="font-medium">{formatCurrency(finance.income)}</span>
+                  <span className="text-slate-500">Total Expense:</span>{" "}
+                  <span className="font-medium">{formatCurrency(totalExpense)}</span>
                 </p>
-                <p>
-                  <span className="text-slate-500">Expense:</span>{" "}
-                  <span className="font-medium">{formatCurrency(finance.expense)}</span>
-                </p>
-                <p>
-                  <span className="text-slate-500">Profit/Loss:</span>{" "}
-                  <span className={`font-medium ${finance.profitLoss >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                    {formatCurrency(finance.profitLoss)}
-                  </span>
-                </p>
+                {preCost.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Pre-cost</p>
+                    {preCost.map((e, i) => (
+                      <p key={i} className="flex justify-between text-xs">
+                        <span>{e.description} <span className="text-slate-400">({e.date})</span></span>
+                        <span>{formatCurrency(e.amount)}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {onGoing.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold text-slate-500 uppercase mb-1">On-going</p>
+                    {onGoing.map((e, i) => (
+                      <p key={i} className="flex justify-between text-xs">
+                        <span>{e.description} <span className="text-slate-400">({e.date})</span></span>
+                        <span>{formatCurrency(e.amount)}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {expenses.length === 0 && (
+                  <p className="text-slate-500">No expenses recorded.</p>
+                )}
               </div>
             </section>
 

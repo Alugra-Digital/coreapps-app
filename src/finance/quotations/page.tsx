@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useQuotations } from "@/hooks/useQuotations";
+import type { Quotation } from "@/finance/quotations/types";
+
 type QuotationRecord = {
   id: string;
   quotationNo: string;
@@ -26,115 +29,53 @@ type QuotationRecord = {
   validUntil: string;
   amount: number;
   probability: number;
-  status: "draft" | "sent" | "negotiation" | "accepted";
+  status: Quotation["status"];
 };
 
-const dummyQuotations: QuotationRecord[] = [
-  {
-    id: "Q-001",
-    quotationNo: "QT-2026-001",
-    clientName: "PT Sumber Karya Utama",
-    projectName: "Office Supply Renewal",
-    picName: "Rani Putri",
-    email: "rani@sumberkarya.id",
-    phone: "+62 812-3456-1101",
-    city: "Jakarta",
-    validUntil: "2026-03-15",
-    amount: 154500000,
-    probability: 88,
-    status: "sent",
-  },
-  {
-    id: "Q-002",
-    quotationNo: "QT-2026-002",
-    clientName: "CV Nusa Digital Printing",
-    projectName: "Packaging and Brochure Batch",
-    picName: "Kevin Maulana",
-    email: "kevin@nusahub.co.id",
-    phone: "+62 813-2277-1490",
-    city: "Bandung",
-    validUntil: "2026-03-10",
-    amount: 98200000,
-    probability: 72,
-    status: "negotiation",
-  },
-  {
-    id: "Q-003",
-    quotationNo: "QT-2026-003",
-    clientName: "PT Gemilang Teknik Persada",
-    projectName: "Annual Equipment Maintenance",
-    picName: "Bagus Yudistira",
-    email: "bagus@gemilangteknik.co.id",
-    phone: "+62 811-8800-670",
-    city: "Surabaya",
-    validUntil: "2026-03-22",
-    amount: 211300000,
-    probability: 65,
-    status: "draft",
-  },
-  {
-    id: "Q-004",
-    quotationNo: "QT-2026-004",
-    clientName: "PT Cipta Medika Logistik",
-    projectName: "Cold Chain Distribution Setup",
-    picName: "Nadia Salma",
-    email: "nadia@ciptamedika.id",
-    phone: "+62 878-9922-300",
-    city: "Semarang",
-    validUntil: "2026-03-12",
-    amount: 187900000,
-    probability: 93,
-    status: "accepted",
-  },
-  {
-    id: "Q-005",
-    quotationNo: "QT-2026-005",
-    clientName: "CV Andalan Transportasi",
-    projectName: "Fleet Monitoring Integration",
-    picName: "Dimas Pratama",
-    email: "dimas@andalantrans.id",
-    phone: "+62 822-1900-221",
-    city: "Bekasi",
-    validUntil: "2026-03-18",
-    amount: 121400000,
-    probability: 77,
-    status: "sent",
-  },
-  {
-    id: "Q-006",
-    quotationNo: "QT-2026-006",
-    clientName: "PT Artha Komponen Industri",
-    projectName: "Raw Material Procurement Contract",
-    picName: "Sinta Laras",
-    email: "sinta@arthakomponen.co.id",
-    phone: "+62 812-7440-570",
-    city: "Karawang",
-    validUntil: "2026-03-25",
-    amount: 268750000,
-    probability: 69,
-    status: "negotiation",
-  },
-];
+function mapQuotationToRecord(q: Quotation): QuotationRecord {
+  return {
+    id: String(q.id),
+    quotationNo: q.quotationNumber ?? String(q.id),
+    clientName: q.clientName ?? "",
+    projectName: q.projectName ?? "",
+    picName: "",
+    email: "",
+    phone: "",
+    city: "",
+    validUntil: q.validUntil ?? "",
+    amount: q.grandTotal ?? 0,
+    probability: 0,
+    status: q.status ?? "draft",
+  };
+}
 
 export default function QuotationsPage() {
-  const totalQuotations = dummyQuotations.length;
-  const draftCount = dummyQuotations.filter((quotation) => quotation.status === "draft").length;
-  const sentCount = dummyQuotations.filter((quotation) => quotation.status === "sent").length;
-  const acceptedCount = dummyQuotations.filter((quotation) => quotation.status === "accepted").length;
-  const winRate = Math.round((acceptedCount / totalQuotations) * 100);
-  const averageValue = Math.round(
-    dummyQuotations.reduce((sum, quotation) => sum + quotation.amount, 0) / totalQuotations
-  );
-  const averageProbability = Math.round(
-    dummyQuotations.reduce((sum, quotation) => sum + quotation.probability, 0) / totalQuotations
-  );
-  const spotlightQuotation = dummyQuotations[0];
-  const statusMix = [
-    { label: "Draft", value: 20, color: "bg-slate-500" },
-    { label: "Sent", value: 33, color: "bg-blue-500" },
-    { label: "Negotiation", value: 32, color: "bg-violet-500" },
-    { label: "Accepted", value: 15, color: "bg-emerald-500" },
-  ];
+  const { data: quotationsRaw = [] } = useQuotations();
+  const quotations: QuotationRecord[] = Array.isArray(quotationsRaw)
+    ? quotationsRaw.map(mapQuotationToRecord)
+    : [];
+
+  const totalQuotations = quotations.length;
+  const draftCount = quotations.filter((q) => q.status === "draft").length;
+  const sentCount = quotations.filter((q) => q.status === "sent").length;
+  const acceptedCount = quotations.filter((q) => q.status === "accepted").length;
+  const winRate = totalQuotations ? Math.round((acceptedCount / totalQuotations) * 100) : 0;
+  const averageValue = totalQuotations ? Math.round(quotations.reduce((sum, q) => sum + q.amount, 0) / totalQuotations) : 0;
+  const averageProbability = totalQuotations ? Math.round(quotations.reduce((sum, q) => sum + q.probability, 0) / totalQuotations) : 0;
+  const spotlightQuotation = quotations[0];
+  const statusMix = totalQuotations
+    ? [
+        { label: "Draft", value: Math.round((draftCount / totalQuotations) * 100), color: "bg-slate-500" },
+        { label: "Sent", value: Math.round((sentCount / totalQuotations) * 100), color: "bg-blue-500" },
+        { label: "Negotiation", value: Math.round((quotations.filter((q) => q.status === "negotiation").length / totalQuotations) * 100), color: "bg-violet-500" },
+        { label: "Accepted", value: Math.round((acceptedCount / totalQuotations) * 100), color: "bg-emerald-500" },
+      ]
+    : [
+        { label: "Draft", value: 0, color: "bg-slate-500" },
+        { label: "Sent", value: 0, color: "bg-blue-500" },
+        { label: "Negotiation", value: 0, color: "bg-violet-500" },
+        { label: "Accepted", value: 0, color: "bg-emerald-500" },
+      ];
   const layoutSlots = [
     {
       code: "Overview",
@@ -223,7 +164,7 @@ export default function QuotationsPage() {
                   Updated Daily
                 </span>
                 <span className="inline-flex items-center whitespace-nowrap text-[10px] leading-none font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  Sample Data
+                  Live Data
                 </span>
                 <span className="inline-flex items-center whitespace-nowrap text-[10px] leading-none font-semibold px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400">
                   Q1 2026
@@ -324,7 +265,7 @@ export default function QuotationsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {dummyQuotations.map((quotation) => (
+                    {quotations.map((quotation) => (
                       <tr key={quotation.id} className="hover:bg-slate-50/70 dark:hover:bg-white/3 transition-colors">
                         <td className="px-3 py-2.5 min-w-0">
                           <p className="font-semibold text-slate-900 dark:text-foreground truncate">
@@ -366,6 +307,7 @@ export default function QuotationsPage() {
         </div>
 
         <div className="xl:col-span-3 flex flex-col gap-4">
+          {spotlightQuotation && (
           <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
             <div className="flex items-center justify-between mb-2 px-1">
               <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
@@ -407,6 +349,7 @@ export default function QuotationsPage() {
               </div>
             </CardContent>
           </Card>
+          )}
 
           <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm">
             <div className="flex items-center justify-between mb-2 px-1">

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   FolderKanban,
   FileText,
@@ -12,7 +11,9 @@ import { DashboardStatCard } from "./components/DashboardStatCard";
 import { PerformanceTrendChart } from "./components/PerformanceTrendChart";
 import { LatestUpdates } from "./components/LatestUpdates";
 import { ActiveProjectsTable } from "./components/ActiveProjectsTable";
-import { getDashboardData } from "@/api/dashboard";
+import { useDashboardData } from "@/hooks/useDashboard";
+import { useAuth } from "@/contexts/AuthContext";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 function formatIdr(value: number): string {
   if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
@@ -22,29 +23,11 @@ function formatIdr(value: number): string {
 }
 
 export default function DashboardPage() {
-  const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getDashboardData()
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading: loading } = useDashboardData();
+  const { currentUser } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-foreground">
-            Dashboard
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Loading...
-          </p>
-        </div>
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const metrics = data?.metrics ?? {
@@ -67,7 +50,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col gap-1">
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-foreground">
-          Hello, Raid Ikram <span className="text-2xl">👋</span>
+          Hello, {currentUser?.fullName || currentUser?.username || "User"} <span className="text-2xl">👋</span>
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm">
           Overview of your ERP Implementation & Consulting performance.

@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -12,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { createTransaction } from "@/api/transactions";
 
 const accountOptions = [
   "Main Operations",
@@ -37,10 +41,46 @@ const statusOptions = ["Completed", "Pending", "Processing"];
 
 export default function NewTransactionPage() {
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
+  const [type, setType] = useState<"inbound" | "outbound">("inbound");
+  const [category, setCategory] = useState("consulting");
+  const [status, setStatus] = useState("pending");
+  const [amount, setAmount] = useState<number>(0);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    navigate("/finance/accounting");
+    const form = event.currentTarget;
+    const dateEl = form.querySelector<HTMLInputElement>("#transaction-date");
+    const entityEl = form.querySelector<HTMLInputElement>("#entity");
+
+    const date = dateEl?.value ?? new Date().toISOString().slice(0, 10);
+    const entity = entityEl?.value?.trim() ?? "";
+
+    if (!entity || amount <= 0) {
+      toast.error("Please fill in entity and amount.");
+      return;
+    }
+
+    const categoryLabel = category.split("-").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(" ");
+    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1) as "Completed" | "Pending" | "Processing";
+
+    setSubmitting(true);
+    try {
+      await createTransaction({
+        date,
+        entity,
+        category: categoryLabel,
+        amount,
+        type,
+        status: statusLabel,
+      });
+      toast.success("Transaction created successfully.");
+      navigate("/finance/invoice");
+    } catch (e) {
+      toast.error(e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Failed to create transaction.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -48,7 +88,7 @@ export default function NewTransactionPage() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button asChild variant="outline" className="h-9 px-3">
-            <Link to="/finance/accounting">
+            <Link to="/finance/invoice">
               <ArrowLeft className="h-4 w-4" />
               Back
             </Link>
@@ -129,7 +169,7 @@ export default function NewTransactionPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select defaultValue="inbound">
+                <Select value={type} onValueChange={(v) => setType(v as "inbound" | "outbound")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -142,17 +182,17 @@ export default function NewTransactionPage() {
 
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select defaultValue="consulting">
+                <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categoryOptions.map((category) => (
+                    {categoryOptions.map((cat) => (
                       <SelectItem
-                        key={category}
-                        value={category.toLowerCase().replace(/\s+/g, "-")}
+                        key={cat}
+                        value={cat.toLowerCase().replace(/\s+/g, "-")}
                       >
-                        {category}
+                        {cat}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -182,24 +222,25 @@ export default function NewTransactionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (IDR)</Label>
-                <Input
+                <CurrencyInput
                   id="amount"
-                  type="number"
-                  min={0}
-                  placeholder="192200000"
+                  prefix="Rp"
+                  value={amount}
+                  onChange={setAmount}
+                  placeholder="0"
                   required
                 />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select defaultValue="pending">
+                <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status.toLowerCase()}>
-                        {status}
+                    {statusOptions.map((s) => (
+                      <SelectItem key={s} value={s.toLowerCase()}>
+                        {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -223,11 +264,11 @@ export default function NewTransactionPage() {
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" asChild>
-                <Link to="/finance/accounting">Cancel</Link>
+                <Link to="/finance/invoice">Cancel</Link>
               </Button>
-              <Button type="submit" className="gap-2">
+              <Button type="submit" className="gap-2" disabled={submitting}>
                 <Save className="h-4 w-4" />
-                Save Transaction
+                {submitting ? "Saving..." : "Save Transaction"}
               </Button>
             </div>
           </form>

@@ -5,10 +5,10 @@ import {
   Eye,
   Pencil,
   Trash2,
-  FileText,
 } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -33,18 +33,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PurchaseOrderFormDialog } from "./PurchaseOrderFormDialog";
-import { PurchaseOrderViewDialog } from "./PurchaseOrderViewDialog";
-import { PurchaseOrderPdfViewer } from "./PurchaseOrderPdfViewer";
 import { deletePurchaseOrder } from "@/api/purchase-orders";
 import type { PurchaseOrder } from "../types";
 
 interface PurchaseOrderTableProps {
   purchaseOrders: PurchaseOrder[];
   onRefresh: () => void;
-  onAddClick: () => void;
-  isAddOpen: boolean;
-  onAddOpenChange: (open: boolean) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -58,14 +52,9 @@ function formatCurrency(value: number): string {
 export function PurchaseOrderTable({
   purchaseOrders,
   onRefresh,
-  onAddClick,
-  isAddOpen,
-  onAddOpenChange,
 }: PurchaseOrderTableProps) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [editPO, setEditPO] = useState<PurchaseOrder | null>(null);
-  const [viewPO, setViewPO] = useState<PurchaseOrder | null>(null);
-  const [pdfPO, setPdfPO] = useState<PurchaseOrder | null>(null);
   const [deletePOId, setDeletePOId] = useState<string | null>(null);
   const [deletePONumber, setDeletePONumber] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -89,16 +78,6 @@ export function PurchaseOrderTable({
     }
   };
 
-  const handleAddSuccess = () => {
-    onAddOpenChange(false);
-    onRefresh();
-  };
-
-  const handleEditSuccess = () => {
-    setEditPO(null);
-    onRefresh();
-  };
-
   const getTotalAmount = (po: PurchaseOrder): number => {
     return po.lineItems.reduce(
       (sum, item) => sum + (item.priceAfterTax ?? item.subtotal),
@@ -108,171 +87,129 @@ export function PurchaseOrderTable({
 
   return (
     <>
-      <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
-        <div className="flex justify-between items-center mb-3 px-2">
-          <span className="text-[13px] font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 uppercase tracking-wider">
-            <FileText className="h-4 w-4" /> Purchase Order List
-          </span>
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6B75]" />
+            <input
+              placeholder="Filter by PO #, vendor, or reference..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-[#111113] border-[#1E1E22] text-[#F0F0F0] text-sm rounded-xl py-2.5 pl-10 pr-4 focus:ring-1 focus:ring-[#F5A623] outline-none transition-all"
+            />
+          </div>
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-slate-400" />
-              <input
-                placeholder="Search PO #, Vendor, Ref..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg py-1 pl-8 pr-4 text-[10px] focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none w-48 text-foreground"
-              />
-            </div>
             <Button
               variant="outline"
-              size="sm"
-              className="h-7 gap-2 rounded-lg text-[10px] font-medium bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/10 transition-colors"
+              className="h-10 border-[#1E1E22] bg-[#111113] text-[#F0F0F0] hover:bg-[#1E1E22] rounded-xl px-4"
             >
-              <Filter className="h-3.5 w-3.5" /> Filter
-            </Button>
-            <Button
-              className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
-              onClick={onAddClick}
-            >
-              Add Purchase Order
+              <Filter className="h-4 w-4 mr-2" /> Filter
             </Button>
           </div>
         </div>
 
-        <CardContent className="p-0 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        <Card className="bg-[#111113] border-[#1E1E22] rounded-2xl overflow-hidden shadow-2xl">
           <Table>
-            <TableHeader className="bg-slate-50/50 dark:bg-white/5">
-              <TableRow className="hover:bg-transparent border-slate-100 dark:border-white/5">
-                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  PO Number
-                </TableHead>
-                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Date
-                </TableHead>
-                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Vendor
-                </TableHead>
-                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Doc. Reference
-                </TableHead>
-                <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Total
-                </TableHead>
-                <TableHead className="w-12"></TableHead>
+            <TableHeader className="bg-[#0A0A0B]">
+              <TableRow className="hover:bg-transparent border-[#1E1E22]">
+                <TableHead className="text-[#6B6B75] text-[10px] font-bold uppercase tracking-widest py-4">PO Number</TableHead>
+                <TableHead className="text-[#6B6B75] text-[10px] font-bold uppercase tracking-widest py-4">Date</TableHead>
+                <TableHead className="text-[#6B6B75] text-[10px] font-bold uppercase tracking-widest py-4">Vendor</TableHead>
+                <TableHead className="text-[#6B6B75] text-[10px] font-bold uppercase tracking-widest py-4">Ref</TableHead>
+                <TableHead className="text-[#6B6B75] text-[10px] font-bold uppercase tracking-widest py-4 text-right">Total Amount</TableHead>
+                <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((po) => (
-                <TableRow
-                  key={po.id}
-                  className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
-                >
-                  <TableCell className="py-3">
-                    <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                      {po.orderInfo.poNumber}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {po.orderInfo.poDate}
-                  </TableCell>
-                  <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {po.vendorInfo.vendorName}
-                  </TableCell>
-                  <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {po.orderInfo.docReference ?? "-"}
-                  </TableCell>
-                  <TableCell className="py-3 text-xs font-medium text-slate-700 dark:text-slate-300">
-                    {formatCurrency(getTotalAmount(po))}
-                  </TableCell>
-                  <TableCell className="py-3 text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover/row:opacity-100 transition-opacity"
-                        >
-                          <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setViewPO(po)}>
-                          <Eye className="h-3.5 w-3.5 mr-2" /> View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setPdfPO(po)}>
-                          <FileText className="h-3.5 w-3.5 mr-2" /> View PDF
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditPO(po)}>
-                          <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onClick={() => {
-                            setDeletePOId(po.id);
-                            setDeletePONumber(po.orderInfo.poNumber);
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-32 text-center text-[#6B6B75] text-sm">
+                    No purchase orders found matching your search.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filtered.map((po) => (
+                  <TableRow
+                    key={po.id}
+                    className="group/row hover:bg-white/[0.02] transition-colors border-[#1E1E22]"
+                  >
+                    <TableCell className="py-4">
+                      <span className="text-sm font-bold text-[#F0F0F0] group-hover/row:text-[#F5A623] transition-colors cursor-pointer" onClick={() => navigate(`/finance/purchase-orders/${po.id}`)}>
+                        {po.orderInfo.poNumber}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-4 text-sm text-[#F0F0F0]">
+                      {new Date(po.orderInfo.poDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="py-4 text-sm text-[#F0F0F0] font-medium">
+                      {po.vendorInfo.vendorName}
+                    </TableCell>
+                    <TableCell className="py-4 text-xs text-[#6B6B75]">
+                      {po.orderInfo.docReference ?? "-"}
+                    </TableCell>
+                    <TableCell className="py-4 text-sm font-bold text-[#F0F0F0] text-right">
+                      {formatCurrency(getTotalAmount(po))}
+                    </TableCell>
+                    <TableCell className="py-4 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-[#6B6B75] hover:text-[#F0F0F0] hover:bg-[#1E1E22] rounded-lg"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-[#111113] border-[#1E1E22] text-[#F0F0F0]">
+                          <DropdownMenuItem onClick={() => navigate(`/finance/purchase-orders/${po.id}`)} className="cursor-pointer">
+                            <Eye className="h-4 w-4 mr-2 text-[#6B6B75]" /> View Detail
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/finance/purchase-orders/${po.id}/edit`)} className="cursor-pointer">
+                            <Pencil className="h-4 w-4 mr-2 text-[#6B6B75]" /> Edit Document
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => {
+                              setDeletePOId(po.id);
+                              setDeletePONumber(po.orderInfo.poNumber);
+                            }}
+                            className="cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-500"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete PO
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      <PurchaseOrderFormDialog
-        open={isAddOpen}
-        onOpenChange={onAddOpenChange}
-        onSuccess={handleAddSuccess}
-      />
-
-      <PurchaseOrderFormDialog
-        open={!!editPO}
-        onOpenChange={(open) => !open && setEditPO(null)}
-        purchaseOrder={editPO ?? undefined}
-        onSuccess={handleEditSuccess}
-      />
-
-      <PurchaseOrderViewDialog
-        purchaseOrder={viewPO}
-        onOpenChange={(open) => !open && setViewPO(null)}
-        onEdit={() => {
-          if (viewPO) {
-            setViewPO(null);
-            setEditPO(viewPO);
-          }
-        }}
-      />
-
-      <PurchaseOrderPdfViewer
-        purchaseOrder={pdfPO}
-        onOpenChange={(open) => !open && setPdfPO(null)}
-      />
+        </Card>
+      </div>
 
       <AlertDialog
         open={!!deletePOId}
         onOpenChange={(open) => !open && setDeletePOId(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-[#111113] border-[#1E1E22] text-[#F0F0F0]">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Purchase Order</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-[#6B6B75]">
               Are you sure you want to delete{" "}
-              <strong>{deletePONumber}</strong>? This action cannot be undone.
+              <strong className="text-[#F0F0F0]">{deletePONumber}</strong>? This action cannot be undone and will remove all associated line items.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="bg-transparent border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22]">Cancel</AlertDialogCancel>
             <Button
               variant="destructive"
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold"
             >
-              {isDeleting ? "Deleting..." : "Delete"}
+              {isDeleting ? "Deleting..." : "Delete Permanently"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -280,3 +217,4 @@ export function PurchaseOrderTable({
     </>
   );
 }
+

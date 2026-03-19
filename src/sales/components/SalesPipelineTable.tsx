@@ -14,8 +14,18 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
+interface Deal {
+  id: string;
+  name: string;
+  stage: string;
+  probability: number;
+  value: number;
+  owner: string;
+  dueDate: string;
+}
+
 interface SalesPipelineTableProps {
-  recentDeals: any[];
+  recentDeals: Deal[];
 }
 
 export function SalesPipelineTable({ recentDeals }: SalesPipelineTableProps) {

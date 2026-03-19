@@ -5,8 +5,13 @@ import {
   Pencil,
   Trash2,
   FileText,
+  Send,
+  CheckCircle2,
+  Ban,
+  XCircle,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,10 +26,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -32,18 +39,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ProposalPenawaranFormDialog } from "./ProposalPenawaranFormDialog";
 import { ProposalPenawaranViewDialog } from "./ProposalPenawaranViewDialog";
 import { ProposalPenawaranPdfViewer } from "./ProposalPenawaranPdfViewer";
-import { deleteProposal } from "@/api/proposal-penawaran";
-import type { ProposalPenawaran } from "../types";
+import { deleteProposal, updateProposal } from "@/api/proposal-penawaran";
+import type { ProposalPenawaran, ProposalStatus } from "../types";
 
 interface ProposalPenawaranTableProps {
   proposals: ProposalPenawaran[];
   onRefresh: () => void;
-  onAddClick: () => void;
-  isAddOpen: boolean;
-  onAddOpenChange: (open: boolean) => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -51,6 +54,7 @@ const STATUS_LABELS: Record<string, string> = {
   sent: "Sent",
   accepted: "Accepted",
   rejected: "Rejected",
+  cancelled: "Cancelled",
 };
 
 function formatCurrency(value: number): string {
@@ -63,24 +67,31 @@ function formatCurrency(value: number): string {
 export function ProposalPenawaranTable({
   proposals,
   onRefresh,
-  onAddClick,
-  isAddOpen,
-  onAddOpenChange,
 }: ProposalPenawaranTableProps) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [editProposal, setEditProposal] = useState<ProposalPenawaran | null>(null);
   const [viewProposal, setViewProposal] = useState<ProposalPenawaran | null>(null);
   const [pdfProposal, setPdfProposal] = useState<ProposalPenawaran | null>(null);
   const [deleteProposalId, setDeleteProposalId] = useState<string | null>(null);
   const [deleteProposalName, setDeleteProposalName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Status Change State
+  const [statusUpdateConfig, setStatusUpdateConfig] = useState<{
+    id: string;
+    proposalNumber: string;
+    nextStatus: ProposalStatus;
+    actionLabel: string;
+    description: string;
+  } | null>(null);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+
   const filtered = proposals.filter((p) => {
     const matchSearch =
-      (p.coverInfo.jobOffer ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.coverInfo?.jobOffer ?? "").toLowerCase().includes(search.toLowerCase()) ||
       (p.proposalNumber ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (p.clientInfo.clientName ?? "").toLowerCase().includes(search.toLowerCase());
+      (p.clientInfo?.clientName ?? "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || p.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -97,14 +108,26 @@ export function ProposalPenawaranTable({
     }
   };
 
-  const handleAddSuccess = () => {
-    onAddOpenChange(false);
-    onRefresh();
+  const handleStatusConfirm = async () => {
+    if (!statusUpdateConfig) return;
+    setIsUpdatingStatus(true);
+    try {
+      await updateProposal(statusUpdateConfig.id, { status: statusUpdateConfig.nextStatus });
+      onRefresh();
+      setStatusUpdateConfig(null);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
-  const handleEditSuccess = () => {
-    setEditProposal(null);
-    onRefresh();
+  const triggerStatusUpdate = (proposal: ProposalPenawaran, nextStatus: ProposalStatus, actionLabel: string, description: string) => {
+    setStatusUpdateConfig({
+      id: proposal.id,
+      proposalNumber: proposal.proposalNumber,
+      nextStatus,
+      actionLabel,
+      description,
+    });
   };
 
   return (
@@ -127,20 +150,16 @@ export function ProposalPenawaranTable({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-7 px-3 rounded-lg text-[10px] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10"
+              className="h-7 px-3 rounded-lg text-[10px] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:ring-1 focus:ring-slate-200 dark:focus:ring-white/20 outline-none"
             >
               <option value="all">All Status</option>
               <option value="draft">Draft</option>
               <option value="sent">Sent</option>
               <option value="accepted">Accepted</option>
               <option value="rejected">Rejected</option>
+              <option value="cancelled">Cancelled</option>
             </select>
-            <Button
-              className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
-              onClick={onAddClick}
-            >
-              Add Proposal
-            </Button>
+            {/* Add Proposal Button removed as requested */}
           </div>
         </div>
 
@@ -178,10 +197,10 @@ export function ProposalPenawaranTable({
                     </span>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
-                    {p.coverInfo.jobOffer}
+                    {p.coverInfo?.jobOffer ?? ""}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
-                    {p.clientInfo.clientName}
+                    {p.clientInfo?.clientName ?? ""}
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
                     {formatCurrency(p.totalEstimatedCost)}
@@ -189,12 +208,12 @@ export function ProposalPenawaranTable({
                   <TableCell className="py-3">
                     <span
                       className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${p.status === "accepted"
-                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
-                          : p.status === "rejected"
-                            ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500"
-                            : p.status === "sent"
-                              ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500"
-                              : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+                        : p.status === "rejected" || p.status === "cancelled"
+                          ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500"
+                          : p.status === "sent"
+                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500"
+                            : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
                         }`}
                     >
                       {STATUS_LABELS[p.status] ?? p.status}
@@ -211,16 +230,38 @@ export function ProposalPenawaranTable({
                           <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-48">
+                        {p.status === "draft" && (
+                          <DropdownMenuItem onClick={() => triggerStatusUpdate(p, "sent", "Send Proposal?", "This will update the status to Sent.")}>
+                            <Send className="h-3.5 w-3.5 mr-2 text-blue-500" /> Mark as Sent
+                          </DropdownMenuItem>
+                        )}
+                        {p.status === "sent" && (
+                          <>
+                            <DropdownMenuItem onClick={() => triggerStatusUpdate(p, "accepted", "Accept Proposal?", "This will update the status to Accepted.")}>
+                              <CheckCircle2 className="h-3.5 w-3.5 mr-2 text-emerald-500" /> Mark as Accepted
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => triggerStatusUpdate(p, "rejected", "Reject Proposal?", "This will mark the proposal as Rejected by the client.")}>
+                              <Ban className="h-3.5 w-3.5 mr-2 text-red-500" /> Mark as Rejected
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {p.status !== "cancelled" && p.status !== "accepted" && p.status !== "rejected" && (
+                          <DropdownMenuItem onClick={() => triggerStatusUpdate(p, "cancelled", "Cancel Proposal?", "This will cancel the proposal completely.")}>
+                            <XCircle className="h-3.5 w-3.5 mr-2 text-red-500" /> Cancel Proposal
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => setViewProposal(p)}>
-                          <Eye className="h-3.5 w-3.5 mr-2" /> View
+                          <Eye className="h-3.5 w-3.5 mr-2" /> View Details
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setPdfProposal(p)}>
                           <FileText className="h-3.5 w-3.5 mr-2" /> View PDF
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditProposal(p)}>
+                        <DropdownMenuItem onClick={() => navigate(`/finance/proposal-penawaran/${p.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           variant="destructive"
                           onClick={() => {
@@ -240,26 +281,13 @@ export function ProposalPenawaranTable({
         </CardContent>
       </Card>
 
-      <ProposalPenawaranFormDialog
-        open={isAddOpen}
-        onOpenChange={onAddOpenChange}
-        onSuccess={handleAddSuccess}
-      />
-
-      <ProposalPenawaranFormDialog
-        open={!!editProposal}
-        onOpenChange={(open) => !open && setEditProposal(null)}
-        proposal={editProposal ?? undefined}
-        onSuccess={handleEditSuccess}
-      />
-
       <ProposalPenawaranViewDialog
         proposal={viewProposal}
         onOpenChange={(open) => !open && setViewProposal(null)}
         onEdit={() => {
           if (viewProposal) {
             setViewProposal(null);
-            setEditProposal(viewProposal);
+            navigate(`/finance/proposal-penawaran/${viewProposal.id}/edit`);
           }
         }}
       />
@@ -269,6 +297,7 @@ export function ProposalPenawaranTable({
         onOpenChange={(open) => !open && setPdfProposal(null)}
       />
 
+      {/* DELETE CONFIRMATION */}
       <AlertDialog
         open={!!deleteProposalId}
         onOpenChange={(open) => !open && setDeleteProposalId(null)}
@@ -290,6 +319,38 @@ export function ProposalPenawaranTable({
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* STATUS CHANGE CONFIRMATION (Custom Styled) */}
+      <AlertDialog
+        open={!!statusUpdateConfig}
+        onOpenChange={(open) => !open && setStatusUpdateConfig(null)}
+      >
+        <AlertDialogContent className="bg-[#111111] border-white/10 p-6 rounded-xl sm:max-w-[425px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-medium text-white mb-2">
+              {statusUpdateConfig?.actionLabel}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400 text-sm">
+              {statusUpdateConfig?.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 flex sm:justify-end gap-3">
+            <AlertDialogCancel className="mt-0 bg-[#1c1c1c] hover:bg-[#252525] border-white/5 text-white w-full sm:w-auto px-6 rounded-lg transition-colors">
+              Not Now
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="mt-0 bg-[#eeb33b] hover:bg-[#d9a232] text-black font-medium w-full sm:w-auto px-6 rounded-lg transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                handleStatusConfirm();
+              }}
+              disabled={isUpdatingStatus}
+            >
+              {isUpdatingStatus ? "Syncing..." : "Yes"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

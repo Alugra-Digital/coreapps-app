@@ -23,7 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { roleFormSchema, type RoleFormValues } from "../schema";
-import { createRole, updateRole } from "@/api/roles";
+import { useCreateRole, useUpdateRole } from "@/hooks/useRoles";
 import type { ApiError } from "@/lib/api/client";
 import { toast } from "sonner";
 import type { Role } from "../types";
@@ -43,7 +43,24 @@ function getPermissionOptions(): { key: string; label: string; group?: string }[
     if (item.children?.length) {
       options.push({ key: item.permissionKey, label: `${item.label} (parent)`, group: item.label });
       for (const child of item.children) {
-        options.push({ key: child.permissionKey, label: child.label, group: item.label });
+        if (child.children?.length) {
+          // Submenu with nested children (e.g., Catatan Pengeluaran)
+          options.push({
+            key: child.permissionKey,
+            label: `${child.label} (parent)`,
+            group: `${item.label} / ${child.label}`,
+          });
+          for (const grandChild of child.children) {
+            options.push({
+              key: grandChild.permissionKey,
+              label: grandChild.label,
+              group: `${item.label} / ${child.label}`,
+            });
+          }
+        } else {
+          // Regular child (no nested children)
+          options.push({ key: child.permissionKey, label: child.label, group: item.label });
+        }
       }
     } else {
       options.push({ key: item.permissionKey, label: item.label });
@@ -61,6 +78,8 @@ export function RoleFormDialog({
   onSuccess,
 }: RoleFormDialogProps) {
   const isEdit = !!role;
+  const createMutation = useCreateRole();
+  const updateMutation = useUpdateRole();
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
@@ -93,23 +112,16 @@ export function RoleFormDialog({
     }
   }, [role, open, form]);
 
-  const onSubmit = async (values: RoleFormValues) => {
-    try {
-      const payload = {
-        code: values.code,
-        name: values.name,
-        description: values.description || undefined,
-        permissionKeys: values.permissionKeys,
-        isActive: values.isActive,
-      };
+  const onSubmit = (values: RoleFormValues) => {
+    const payload = {
+      code: values.code,
+      name: values.name,
+      description: values.description || undefined,
+      permissionKeys: values.permissionKeys,
+      isActive: values.isActive,
+    };
 
-      if (isEdit && role) {
-        await updateRole(role.id, payload);
-      } else {
-        await createRole(payload);
-      }
-      onSuccess();
-    } catch (err) {
+    const handleError = (err: unknown) => {
       const apiErr = err as ApiError;
       toast.error(apiErr.message ?? "An error occurred");
       if (Array.isArray(apiErr.errors)) {
@@ -117,6 +129,23 @@ export function RoleFormDialog({
           form.setError(field as keyof RoleFormValues, { message });
         }
       }
+    };
+
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
+    if (isEdit && role) {
+      updateMutation.mutate(
+        { id: role.id, input: payload },
+        { onSuccess: handleSuccess, onError: handleError }
+      );
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: handleError,
+      });
     }
   };
 
@@ -240,8 +269,15 @@ export function RoleFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

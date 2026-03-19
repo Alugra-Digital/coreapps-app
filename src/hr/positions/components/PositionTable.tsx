@@ -7,6 +7,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,8 +33,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PositionFormDialog } from "./PositionFormDialog";
-import { PositionViewDialog } from "./PositionViewDialog";
 import { deletePosition } from "@/api/positions";
 import type { Position } from "../types";
 
@@ -49,12 +48,9 @@ export function PositionTable({
   positions,
   onRefresh,
   onAddClick,
-  isAddOpen,
-  onAddOpenChange,
-}: PositionTableProps) {
+}: Omit<PositionTableProps, 'isAddOpen' | 'onAddOpenChange'>) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [editPosition, setEditPosition] = useState<Position | null>(null);
-  const [viewPosition, setViewPosition] = useState<Position | null>(null);
   const [deletePositionId, setDeletePositionId] = useState<string | null>(null);
   const [deletePositionName, setDeletePositionName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -77,15 +73,7 @@ export function PositionTable({
     }
   };
 
-  const handleAddSuccess = () => {
-    onAddOpenChange(false);
-    onRefresh();
-  };
 
-  const handleEditSuccess = () => {
-    setEditPosition(null);
-    onRefresh();
-  };
 
   return (
     <>
@@ -152,8 +140,8 @@ export function PositionTable({
                   <TableCell className="py-3">
                     <span
                       className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${p.isActive
-                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
-                          : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
+                        : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
                         }`}
                     >
                       {p.isActive ? "Active" : "Inactive"}
@@ -171,10 +159,10 @@ export function PositionTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setViewPosition(p)}>
+                        <DropdownMenuItem onClick={() => navigate(`/hr/positions/${p.id}/edit`)}>
                           <Eye className="h-3.5 w-3.5 mr-2" /> View
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditPosition(p)}>
+                        <DropdownMenuItem onClick={() => navigate(`/hr/positions/${p.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -196,29 +184,7 @@ export function PositionTable({
         </CardContent>
       </Card>
 
-      <PositionFormDialog
-        open={isAddOpen}
-        onOpenChange={onAddOpenChange}
-        onSuccess={handleAddSuccess}
-      />
 
-      <PositionFormDialog
-        open={!!editPosition}
-        onOpenChange={(open) => !open && setEditPosition(null)}
-        position={editPosition ?? undefined}
-        onSuccess={handleEditSuccess}
-      />
-
-      <PositionViewDialog
-        position={viewPosition}
-        onOpenChange={(open) => !open && setViewPosition(null)}
-        onEdit={() => {
-          if (viewPosition) {
-            setViewPosition(null);
-            setEditPosition(viewPosition);
-          }
-        }}
-      />
 
       <AlertDialog
         open={!!deletePositionId}

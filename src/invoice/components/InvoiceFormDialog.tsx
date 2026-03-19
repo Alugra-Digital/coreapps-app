@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
@@ -26,8 +27,9 @@ import {
   invoiceFormSchema,
   type InvoiceFormValues,
 } from "../schema";
-import { createInvoice, updateInvoice } from "@/api/invoices";
+import { useCreateInvoice, useUpdateInvoice } from "@/hooks/useInvoices";
 import type { Invoice } from "../types";
+import { toast } from "sonner";
 
 interface InvoiceFormDialogProps {
   open: boolean;
@@ -105,6 +107,8 @@ export function InvoiceFormDialog({
   onSuccess,
 }: InvoiceFormDialogProps) {
   const isEdit = !!invoice;
+  const createMutation = useCreateInvoice();
+  const updateMutation = useUpdateInvoice();
   const wizardSteps = [
     { value: "company", label: "Company" },
     { value: "invoice", label: "Invoice Info" },
@@ -225,7 +229,7 @@ export function InvoiceFormDialog({
     }
   }, [open]);
 
-  const onSubmit = async (values: InvoiceFormValues) => {
+  const onSubmit = (values: InvoiceFormValues) => {
     const payload = {
       companyInfo: values.companyInfo,
       invoiceInfo: values.invoiceInfo,
@@ -243,12 +247,25 @@ export function InvoiceFormDialog({
       notes: values.notes || undefined,
     };
 
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && invoice) {
-      await updateInvoice(invoice.id, payload);
+      updateMutation.mutate(
+        { id: invoice.id, input: payload },
+        {
+          onSuccess: handleSuccess,
+          onError: () => toast.error("Failed to update invoice"),
+        }
+      );
     } else {
-      await createInvoice(payload);
+      createMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: () => toast.error("Failed to create invoice"),
+      });
     }
-    onSuccess();
   };
 
   const currentStepIndex = wizardSteps.findIndex((step) => step.value === activeStep);
@@ -299,13 +316,12 @@ export function InvoiceFormDialog({
                       >
                         <div className="flex items-center gap-2">
                           <span
-                            className={`h-4 w-4 rounded-full text-[10px] font-bold flex items-center justify-center ${
-                              isDone
+                            className={`h-4 w-4 rounded-full text-[10px] font-bold flex items-center justify-center ${isDone
                                 ? "bg-emerald-600 text-white"
                                 : isActive
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"
-                            }`}
+                              }`}
                           >
                             {index + 1}
                           </span>
@@ -322,228 +338,228 @@ export function InvoiceFormDialog({
               <ScrollArea className="flex-1 px-6 pt-2 pb-4">
                 <TabsContent value="company" className="mt-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="companyInfo.letterhead"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Kop Surat</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="companyInfo.companyName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Nama Perusahaan</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="companyInfo.logoUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Logo URL</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="https://..."
-                            className="h-9 text-sm"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="companyInfo.phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">No. Telepon</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="companyInfo.address"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel className="text-xs">Alamat Lengkap</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} rows={3} className="text-sm resize-none" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="companyInfo.letterhead"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Kop Surat</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="companyInfo.companyName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Nama Perusahaan</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="companyInfo.logoUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Logo URL</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="https://..."
+                              className="h-9 text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="companyInfo.phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">No. Telepon</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="companyInfo.address"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-xs">Alamat Lengkap</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} rows={3} className="text-sm resize-none" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="invoice" className="mt-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="invoiceInfo.invoiceName"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel className="text-xs">Nama Invoice</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="invoiceInfo.invoiceNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">No. Invoice</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="invoiceInfo.invoiceDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Tanggal Inv.</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="date" className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="invoiceInfo.taxInvoice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Faktur Pajak</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="invoiceInfo.dueDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Jatuh Tempo</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="date" className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="invoiceInfo.invoiceName"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-xs">Nama Invoice</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="invoiceInfo.invoiceNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">No. Invoice</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="invoiceInfo.invoiceDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Tanggal Inv.</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="invoiceInfo.taxInvoice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Faktur Pajak</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="invoiceInfo.dueDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Jatuh Tempo</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="billing" className="mt-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="billingInfo.companyName"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel className="text-xs">Nama Lengkap Perusahaan</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billingInfo.address"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel className="text-xs">Alamat Lengkap Perusahaan</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} rows={3} className="text-sm resize-none" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billingInfo.phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">No. Telepon</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billingInfo.pic.name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">PIC - Nama</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billingInfo.pic.position"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">PIC - Jabatan</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="billingInfo.pic.contact"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">PIC - Kontak</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="billingInfo.companyName"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-xs">Nama Lengkap Perusahaan</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingInfo.address"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-xs">Alamat Lengkap Perusahaan</FormLabel>
+                          <FormControl>
+                            <Textarea {...field} rows={3} className="text-sm resize-none" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingInfo.phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">No. Telepon</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingInfo.pic.name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">PIC - Nama</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingInfo.pic.position"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">PIC - Jabatan</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="billingInfo.pic.contact"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">PIC - Kontak</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </TabsContent>
 
@@ -591,13 +607,13 @@ export function InvoiceFormDialog({
                           render={({ field }) => (
                             <FormItem className="col-span-2">
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step={0.01}
-                                  {...field}
-                                  onChange={(e) => {
-                                    const v = parseFloat(e.target.value) || 0;
+                                <CurrencyInput
+                                  prefix=""
+                                  name={field.name}
+                                  onBlur={field.onBlur}
+                                  ref={field.ref}
+                                  value={field.value}
+                                  onChange={(v: number) => {
                                     field.onChange(v);
                                     setTimeout(() => updateLineItemCalc(index), 0);
                                   }}
@@ -626,13 +642,13 @@ export function InvoiceFormDialog({
                           render={({ field }) => (
                             <FormItem className="col-span-3">
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step={1}
-                                  {...field}
-                                  onChange={(e) => {
-                                    const v = parseFloat(e.target.value) || 0;
+                                <CurrencyInput
+                                  prefix="Rp"
+                                  name={field.name}
+                                  onBlur={field.onBlur}
+                                  ref={field.ref}
+                                  value={field.value}
+                                  onChange={(v: number) => {
                                     field.onChange(v);
                                     setTimeout(() => updateLineItemCalc(index), 0);
                                   }}
@@ -649,14 +665,13 @@ export function InvoiceFormDialog({
                           render={({ field }) => (
                             <FormItem className="col-span-2">
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  max={100}
-                                  {...field}
+                                <CurrencyInput
+                                  prefix=""
+                                  name={field.name}
+                                  onBlur={field.onBlur}
+                                  ref={field.ref}
                                   value={field.value ?? 11}
-                                  onChange={(e) => {
-                                    const v = parseFloat(e.target.value) || 0;
+                                  onChange={(v: number) => {
                                     field.onChange(v);
                                     setTimeout(() => updateLineItemCalc(index), 0);
                                   }}
@@ -684,15 +699,15 @@ export function InvoiceFormDialog({
                               )}
                             </span>
                             <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-500 hover:text-red-600"
-                            onClick={() => removeLineItem(index)}
-                            disabled={lineItems.length <= 1}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-red-500 hover:text-red-600"
+                              onClick={() => removeLineItem(index)}
+                              disabled={lineItems.length <= 1}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -702,119 +717,119 @@ export function InvoiceFormDialog({
 
                 <TabsContent value="payment" className="mt-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="paymentInfo.bank"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Bank</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="paymentInfo.accountNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Nomor Akun Bank</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="paymentInfo.branch"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Cabang Bank</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="paymentInfo.accountName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Nama Akun Bank</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="paymentInfo.npwp"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel className="text-xs">NPWP</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="paymentInfo.bank"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Bank</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="paymentInfo.accountNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Nomor Akun Bank</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="paymentInfo.branch"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Cabang Bank</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="paymentInfo.accountName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Nama Akun Bank</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="paymentInfo.npwp"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-xs">NPWP</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </TabsContent>
 
                 <TabsContent value="approval" className="mt-0">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <FormField
-                    control={form.control}
-                    name="approval.position"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Jabatan</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="approval.name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Nama</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="approval.signatureUrl"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel className="text-xs">TTD (Signature URL)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="https://..."
-                            className="h-9 text-sm"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <FormField
+                      control={form.control}
+                      name="approval.position"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Jabatan</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="approval.name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Nama</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-9 text-sm" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="approval.signatureUrl"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel className="text-xs">TTD (Signature URL)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="https://..."
+                              className="h-9 text-sm"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </TabsContent>
 
@@ -844,8 +859,15 @@ export function InvoiceFormDialog({
                 Back
               </Button>
               {isLastStep ? (
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                >
+                  {createMutation.isPending || updateMutation.isPending
+                    ? "Saving..."
+                    : isEdit
+                      ? "Update"
+                      : "Create"}
                 </Button>
               ) : (
                 <Button type="button" onClick={goToNextStep}>

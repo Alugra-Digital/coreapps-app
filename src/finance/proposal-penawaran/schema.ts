@@ -53,7 +53,7 @@ export const proposalPenawaranFormSchema = z.object({
   termsAndConditions: z.array(z.string()),
   notes: z.string().optional(),
   documentApproval: documentApprovalSchema,
-  status: z.enum(["draft", "sent", "accepted", "rejected"]),
+  status: z.enum(["draft", "sent", "accepted", "rejected", "cancelled"]),
 });
 
 export type ProposalPenawaranFormValues = z.infer<typeof proposalPenawaranFormSchema>;

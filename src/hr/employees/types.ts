@@ -28,10 +28,13 @@ export const STATUS_PERKAWINAN = ["Kawin", "Belum Kawin"] as const;
 
 export const JENIS_KELAMIN = ["L", "P"] as const;
 
+export const TIPE_KARYAWAN = ["Permanent", "Contract", "Intern", "Freelance"] as const;
+
 export type NamaJabatan = (typeof NAMA_JABATAN)[number];
 export type StatusPajak = (typeof STATUS_PAJAK)[number];
 export type StatusPerkawinan = (typeof STATUS_PERKAWINAN)[number];
 export type JenisKelamin = (typeof JENIS_KELAMIN)[number];
+export type TipeKaryawan = (typeof TIPE_KARYAWAN)[number];
 
 export interface Employee {
   id: string;
@@ -39,6 +42,7 @@ export interface Employee {
   namaKaryawan: string;
   /** Position name from Positions master (backward compatible with NamaJabatan values) */
   namaJabatan: string;
+  tipeKaryawan?: TipeKaryawan;
   tmk?: string;
   noKtp?: string;
   noKk?: string;

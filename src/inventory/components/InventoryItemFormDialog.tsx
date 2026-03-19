@@ -19,8 +19,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { inventoryItemFormSchema, type InventoryItemFormValues } from "../schema";
-import { createInventoryItem, updateInventoryItem } from "@/api/inventory";
+import {
+  useCreateInventoryItem,
+  useUpdateInventoryItem,
+} from "@/hooks/useInventory";
 import type { InventoryItem } from "../types";
+import { toast } from "sonner";
 
 interface InventoryItemFormDialogProps {
   open: boolean;
@@ -36,6 +40,8 @@ export function InventoryItemFormDialog({
   onSuccess,
 }: InventoryItemFormDialogProps) {
   const isEdit = !!item;
+  const createMutation = useCreateInventoryItem();
+  const updateMutation = useUpdateInventoryItem();
 
   const form = useForm<InventoryItemFormValues>({
     resolver: zodResolver(inventoryItemFormSchema),
@@ -65,13 +71,32 @@ export function InventoryItemFormDialog({
     }
   }, [item, open, form]);
 
-  const onSubmit = async (values: InventoryItemFormValues) => {
+  const onSubmit = (values: InventoryItemFormValues) => {
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && item) {
-      await updateInventoryItem(item.id, values);
+      updateMutation.mutate(
+        { id: item.id, input: values },
+        {
+          onSuccess: (data) => {
+            if (data === null) {
+              toast.error("Failed to update item");
+            } else {
+              handleSuccess();
+            }
+          },
+          onError: () => toast.error("Failed to update item"),
+        }
+      );
     } else {
-      await createInventoryItem(values);
+      createMutation.mutate(values, {
+        onSuccess: handleSuccess,
+        onError: () => toast.error("Failed to create item"),
+      });
     }
-    onSuccess();
   };
 
   return (
@@ -159,8 +184,15 @@ export function InventoryItemFormDialog({
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

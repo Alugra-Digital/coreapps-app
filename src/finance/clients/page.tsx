@@ -8,18 +8,17 @@ import {
   Phone,
   MapPin,
 } from "lucide-react";
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ClientTable } from "./components/ClientTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useClients } from "@/hooks/useClients";
-import { mockClients } from "./data";
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const { data: clients = [], isLoading } = useClients();
-  const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const displayClients = clients.length > 0 ? clients : mockClients;
+  const displayClients = clients;
   const activeCount = displayClients.filter((c) => c.isActive).length;
   const withPicCount = displayClients.filter((c) => c.pic?.name).length;
   const withCompleteContact = displayClients.filter((c) => c.email && c.phone).length;
@@ -33,18 +32,18 @@ export default function ClientsPage() {
     ? Math.round((withCompleteContact / displayClients.length) * 100)
     : 0;
   const spotlightClient = displayClients[0];
-  const recentClients = mockClients.slice(0, 4);
+  const recentClients = displayClients.slice(0, 4);
   const followUpQueue = displayClients.slice(0, 5);
 
   return (
-    <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
+    <div className="flex flex-col gap-8 p-8 max-w-[1600px] mx-auto bg-[#0A0A0B] min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-foreground">
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#F0F0F0] mb-2">
             Clients
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Manage client companies for proposals, projects, and invoices.
+          <p className="text-[#6B6B75] text-sm font-medium leading-relaxed">
+            Cultivate and oversee your strategic partnerships and operational client portfolio.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -55,10 +54,10 @@ export default function ClientsPage() {
             <FileDown className="h-4 w-4" /> Export Clients
           </Button>
           <Button
-            className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
-            onClick={() => setIsAddOpen(true)}
+            className="bg-[#F5A623] hover:bg-[#D98E1C] text-black font-bold h-12 px-6 rounded-xl shadow-lg shadow-[#F5A623]/10 transition-all active:scale-95"
+            onClick={() => navigate("/finance/clients/create")}
           >
-            <Plus className="h-4 w-4" /> Add Client
+            <Plus className="h-5 w-5 mr-2" /> Add Client
           </Button>
         </div>
       </div>
@@ -110,9 +109,7 @@ export default function ClientsPage() {
           <ClientTable
             clients={displayClients}
             isLoading={isLoading}
-            onAddClick={() => setIsAddOpen(true)}
-            isAddOpen={isAddOpen}
-            onAddOpenChange={setIsAddOpen}
+            onAddClick={() => navigate("/finance/clients/create")}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -183,7 +180,7 @@ export default function ClientsPage() {
                 <Crown className="h-4 w-4" />
               </div>
             </div>
-            <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] space-y-3">
+            <CardContent className="p-4 bg-[#111113] border-[#1E1E22] rounded-2xl shadow-lg space-y-3">
               <div>
                 <p className="text-sm font-bold text-slate-900 dark:text-foreground">
                   {spotlightClient?.companyName ?? "No client selected"}
@@ -234,10 +231,10 @@ export default function ClientsPage() {
                 New Client Pipeline
               </span>
               <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                Dummy Data
+                Live Data
               </span>
             </div>
-            <CardContent className="p-0 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] divide-y divide-slate-100 dark:divide-white/5">
+            <CardContent className="p-0 bg-[#111113] border-[#1E1E22] rounded-2xl shadow-lg divide-y divide-[#1E1E22]">
               {recentClients.map((client) => (
                 <div key={client.id} className="p-3">
                   <p className="text-xs font-semibold text-slate-900 dark:text-foreground">
@@ -257,7 +254,7 @@ export default function ClientsPage() {
                 Relationship Health
               </span>
             </div>
-            <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] space-y-3">
+            <CardContent className="p-4 bg-[#111113] border-[#1E1E22] rounded-2xl shadow-lg space-y-3 text-[#F0F0F0]">
               <HealthRow label="Excellent" value={48} color="bg-emerald-500" />
               <HealthRow label="Stable" value={34} color="bg-blue-500" />
               <HealthRow label="Needs Follow Up" value={18} color="bg-amber-500" />
@@ -299,7 +296,7 @@ function HealthRow({
         <span className="text-slate-600 dark:text-slate-400">{label}</span>
         <span className="font-semibold text-slate-900 dark:text-foreground">{value}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[#0A0A0B] overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
       </div>
     </div>
@@ -321,7 +318,7 @@ function MixBar({
         <span className="font-medium text-slate-600 dark:text-slate-400">{label}</span>
         <span className="font-semibold text-slate-900 dark:text-foreground">{value}%</span>
       </div>
-      <div className="h-2 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
+      <div className="h-2 rounded-full bg-[#0A0A0B] overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
       </div>
     </div>
@@ -354,113 +351,113 @@ function ClientStatCard({
   const remainingToTarget = Math.max(targetValue - safeProgress, 0);
 
   return (
-    <Card className="h-full shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-center mb-2 px-1">
-        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">
-          {title}
-        </span>
+    <Card className="h-full bg-[#111113] border-[#1E1E22] p-6 rounded-2xl group hover:border-[#F5A623]/30 transition-all">
+      <div className="flex justify-between items-start mb-4 text-[#F0F0F0]">
+        <div className="space-y-1">
+          <span className="text-[10px] font-bold text-[#6B6B75] uppercase tracking-[0.2em] leading-none">
+            {title}
+          </span>
+          <div className="text-3xl font-bold tracking-tight">
+            {value}
+          </div>
+        </div>
         <div
-          className="h-8 w-8 rounded-lg flex items-center justify-center shadow-sm"
-          style={{ backgroundColor: `${color}15`, color: color }}
+          className="h-10 w-10 rounded-xl flex items-center justify-center bg-[#0A0A0B] border border-[#1E1E22] text-[#F5A623] shadow-inner"
         >
           {icon}
         </div>
       </div>
-      <CardContent className="h-full p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        <div className="h-full flex flex-col gap-3 justify-between">
-          <div className="text-2xl font-bold text-slate-900 dark:text-foreground leading-none">
-            {value}
-          </div>
-          <div className="text-[10px] text-slate-400 leading-tight">
-            {description}
-          </div>
 
-          {variant === "trend-bars" && (
-            <div className="mt-1">
-              <div className="flex items-end gap-1 h-10">
-                {trendData.map((point, idx) => (
+      <div className="space-y-4">
+        <div className="text-[10px] text-[#6B6B75] font-medium tracking-wide">
+          {description}
+        </div>
+
+        {variant === "trend-bars" && (
+          <div className="mt-1">
+            <div className="flex items-end gap-1 h-10">
+              {trendData.map((point, idx) => (
+                <div
+                  key={`${title}-${idx}`}
+                  className="flex-1 rounded-sm opacity-90"
+                  style={{
+                    height: `${Math.max(20, Math.min(point, 100))}%`,
+                    backgroundColor: `${color}${idx === trendData.length - 1 ? "" : "80"}`,
+                  }}
+                />
+              ))}
+            </div>
+            <p className="text-[10px] text-[#6B6B75] mt-1 italic">
+              Last 7 periods
+            </p>
+          </div>
+        )}
+
+        {variant === "progress" && (
+          <div className="mt-1 space-y-1.5">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-[#6B6B75]">{progressLabel}</span>
+              <span className="font-bold text-[#F0F0F0]">
+                {safeProgress}%
+              </span>
+            </div>
+            <div className="h-1.5 rounded-full bg-[#0A0A0B] overflow-hidden border border-[#1E1E22]">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${safeProgress}%`, backgroundColor: color }}
+              />
+            </div>
+          </div>
+        )}
+
+        {variant === "segmented" && (
+          <div className="mt-1 space-y-1.5">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-[#6B6B75]">{progressLabel}</span>
+              <span className="font-bold text-[#F0F0F0]">
+                {safeProgress}%
+              </span>
+            </div>
+            <div className="grid grid-cols-10 gap-1">
+              {Array.from({ length: 10 }).map((_, idx) => {
+                const isFilled = idx < Math.round(safeProgress / 10);
+                return (
                   <div
-                    key={`${title}-${idx}`}
-                    className="flex-1 rounded-sm opacity-90"
+                    key={`${title}-seg-${idx}`}
+                    className="h-1.5 rounded-[2px]"
                     style={{
-                      height: `${Math.max(20, Math.min(point, 100))}%`,
-                      backgroundColor: `${color}${idx === trendData.length - 1 ? "" : "80"}`,
+                      backgroundColor: isFilled ? color : "rgba(107, 107, 117, 0.1)",
+                      opacity: isFilled ? 1 : 0.8,
                     }}
                   />
-                ))}
-              </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
-                Last 7 periods
-              </p>
+                );
+              })}
             </div>
-          )}
+          </div>
+        )}
 
-          {variant === "progress" && (
-            <div className="mt-1 space-y-1.5">
-              <div className="flex justify-between text-[10px]">
-                <span className="text-slate-500 dark:text-slate-400">{progressLabel}</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {safeProgress}%
-                </span>
-              </div>
-              <div className="h-2 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${safeProgress}%`, backgroundColor: color }}
-                />
-              </div>
+        {variant === "target" && (
+          <div className="mt-1 space-y-1.5">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-[#6B6B75]">{progressLabel}</span>
+              <span className="font-bold text-[#F0F0F0]">
+                {safeProgress}/{targetValue}%
+              </span>
             </div>
-          )}
-
-          {variant === "segmented" && (
-            <div className="mt-1 space-y-1.5">
-              <div className="flex justify-between text-[10px]">
-                <span className="text-slate-500 dark:text-slate-400">{progressLabel}</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {safeProgress}%
-                </span>
-              </div>
-              <div className="grid grid-cols-10 gap-1">
-                {Array.from({ length: 10 }).map((_, idx) => {
-                  const isFilled = idx < Math.round(safeProgress / 10);
-                  return (
-                    <div
-                      key={`${title}-seg-${idx}`}
-                      className="h-2 rounded-[2px]"
-                      style={{
-                        backgroundColor: isFilled ? color : "rgba(148, 163, 184, 0.25)",
-                        opacity: isFilled ? 1 : 0.8,
-                      }}
-                    />
-                  );
-                })}
-              </div>
+            <div className="h-1.5 rounded-full bg-[#0A0A0B] overflow-hidden border border-[#1E1E22]">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${Math.min((safeProgress / targetValue) * 100, 100)}%`, backgroundColor: color }}
+              />
             </div>
-          )}
-
-          {variant === "target" && (
-            <div className="mt-1 space-y-1.5">
-              <div className="flex justify-between text-[10px]">
-                <span className="text-slate-500 dark:text-slate-400">{progressLabel}</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {safeProgress}/{targetValue}%
-                </span>
-              </div>
-              <div className="h-2 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${Math.min((safeProgress / targetValue) * 100, 100)}%`, backgroundColor: color }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                {remainingToTarget === 0
-                  ? "Target achieved"
-                  : `${remainingToTarget}% to reach target`}
-              </p>
-            </div>
-          )}
-        </div>
-      </CardContent>
+            <p className="text-[10px] text-[#6B6B75] italic">
+              {remainingToTarget === 0
+                ? "Target achieved"
+                : `${remainingToTarget}% to reach target`}
+            </p>
+          </div>
+        )}
+      </div>
     </Card>
   );
 }

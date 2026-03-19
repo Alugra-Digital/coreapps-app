@@ -4,6 +4,7 @@ export const employeeFormSchema = z.object({
   nik: z.string().min(1, "NIK is required"),
   namaKaryawan: z.string().min(1, "Nama Karyawan is required"),
   namaJabatan: z.string().min(1, "Nama Jabatan is required"),
+  tipeKaryawan: z.string().optional(),
   tmk: z.string().optional(),
   noKtp: z.string().optional(),
   noKk: z.string().optional(),

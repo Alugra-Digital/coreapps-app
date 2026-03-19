@@ -7,6 +7,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,14 +33,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ClientFormDialog } from "./ClientFormDialog";
-import { ClientViewDialog } from "./ClientViewDialog";
 import { useDeleteClient } from "@/hooks/useClients";
 import type { Client } from "../types";
+import { toast } from "sonner";
 
 interface ClientTableProps {
   clients: Client[];
-  isLoading?: boolean;
   onAddClick: () => void;
   isAddOpen: boolean;
   onAddOpenChange: (open: boolean) => void;
@@ -47,14 +46,10 @@ interface ClientTableProps {
 
 export function ClientTable({
   clients,
-  isLoading: _isLoading,
   onAddClick,
-  isAddOpen,
-  onAddOpenChange,
-}: ClientTableProps) {
+}: Omit<ClientTableProps, 'isAddOpen' | 'onAddOpenChange'>) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [editClient, setEditClient] = useState<Client | null>(null);
-  const [viewClient, setViewClient] = useState<Client | null>(null);
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [deleteClientName, setDeleteClientName] = useState("");
 
@@ -71,18 +66,16 @@ export function ClientTable({
 
     deleteMutation.mutate(deleteClientId, {
       onSuccess: () => {
+        toast.success("Client deleted successfully");
         setDeleteClientId(null);
       },
+      onError: (err: unknown) => {
+        toast.error(err instanceof Error ? err.message : "Failed to delete client");
+      }
     });
   };
 
-  const handleAddSuccess = () => {
-    onAddOpenChange(false);
-  };
 
-  const handleEditSuccess = () => {
-    setEditClient(null);
-  };
 
   return (
     <>
@@ -168,10 +161,10 @@ export function ClientTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setViewClient(c)}>
+                        <DropdownMenuItem onClick={() => navigate(`/finance/clients/${c.id}`)}>
                           <Eye className="h-3.5 w-3.5 mr-2" /> View
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditClient(c)}>
+                        <DropdownMenuItem onClick={() => navigate(`/finance/clients/${c.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -193,29 +186,7 @@ export function ClientTable({
         </CardContent>
       </Card>
 
-      <ClientFormDialog
-        open={isAddOpen}
-        onOpenChange={onAddOpenChange}
-        onSuccess={handleAddSuccess}
-      />
 
-      <ClientFormDialog
-        open={!!editClient}
-        onOpenChange={(open) => !open && setEditClient(null)}
-        client={editClient ?? undefined}
-        onSuccess={handleEditSuccess}
-      />
-
-      <ClientViewDialog
-        client={viewClient}
-        onOpenChange={(open) => !open && setViewClient(null)}
-        onEdit={() => {
-          if (viewClient) {
-            setViewClient(null);
-            setEditClient(viewClient);
-          }
-        }}
-      />
 
       <AlertDialog
         open={!!deleteClientId}

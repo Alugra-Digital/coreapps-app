@@ -21,56 +21,15 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import type { RecentTransaction } from "@/api/finance";
 
-const transactions = [
-  {
-    id: "TX-9012",
-    date: "Feb 04, 2024",
-    entity: "PT. Alpha Indonesia",
-    category: "Consulting",
-    amount: "Rp 192,2 jt",
-    type: "inbound",
-    status: "Completed",
-  },
-  {
-    id: "TX-9013",
-    date: "Feb 03, 2024",
-    entity: "Global Logistics",
-    category: "Operation",
-    amount: "Rp 50,4 jt",
-    type: "outbound",
-    status: "Pending",
-  },
-  {
-    id: "TX-9014",
-    date: "Feb 02, 2024",
-    entity: "Amazon Web Services",
-    category: "Infrastructure",
-    amount: "Rp 29,3 jt",
-    type: "outbound",
-    status: "Completed",
-  },
-  {
-    id: "TX-9015",
-    date: "Feb 01, 2024",
-    entity: "Karya Mandiri Corp",
-    category: "Tax Service",
-    amount: "Rp 116,3 jt",
-    type: "inbound",
-    status: "Processing",
-  },
-  {
-    id: "TX-9016",
-    date: "Jan 31, 2024",
-    entity: "Apple Inc. (Retail)",
-    category: "Office Supplies",
-    amount: "Rp 18,6 jt",
-    type: "outbound",
-    status: "Completed",
-  },
-];
-
-export function TransactionHistoryTable() {
+export function TransactionHistoryTable({
+  data,
+}: {
+  data?: RecentTransaction[] | null;
+}) {
+  const transactions = data && data.length > 0 ? data : [];
+  const hasData = transactions.length > 0;
   return (
     <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center mb-3 px-2">
@@ -103,6 +62,7 @@ export function TransactionHistoryTable() {
       </div>
 
       <CardContent className="p-0 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        {hasData ? (
         <Table>
           <TableHeader className="bg-slate-50/50 dark:bg-white/5">
             <TableRow className="hover:bg-transparent border-slate-100 dark:border-white/5">
@@ -178,7 +138,7 @@ export function TransactionHistoryTable() {
                           : "text-slate-900 dark:text-foreground",
                       )}
                     >
-                      {tx.amount}
+                      {tx.formattedAmount}
                     </span>
                   </div>
                 </TableCell>
@@ -211,6 +171,11 @@ export function TransactionHistoryTable() {
             ))}
           </TableBody>
         </Table>
+        ) : (
+          <div className="py-12 text-center text-slate-400 dark:text-slate-500 text-sm">
+            No recent transactions
+          </div>
+        )}
       </CardContent>
     </Card>
   );

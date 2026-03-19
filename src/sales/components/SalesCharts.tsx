@@ -14,9 +14,20 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+interface PerformanceDataPoint {
+  name: string;
+  value: number;
+}
+
+interface CategoryDataPoint {
+  name: string;
+  value: number;
+  color: string;
+}
+
 interface SalesChartsProps {
-  performanceData: any[];
-  dealsByCategory: any[];
+  performanceData: PerformanceDataPoint[];
+  dealsByCategory: CategoryDataPoint[];
 }
 
 export function SalesCharts({
@@ -62,7 +73,7 @@ export function SalesCharts({
                 axisLine={false}
                 tickLine={false}
                 tick={{ fontSize: 10, fontWeight: "bold", fill: "#94A3B8" }}
-                tickFormatter={(value) => `$${value / 1000}k`}
+                tickFormatter={(value) => `Rp ${(value / 1000).toLocaleString("id-ID")}rb`}
               />
               <Tooltip
                 contentStyle={{
@@ -108,7 +119,7 @@ export function SalesCharts({
                   paddingAngle={8}
                   dataKey="value"
                 >
-                  {dealsByCategory.map((entry: any, index: number) => (
+                  {dealsByCategory.map((entry, index: number) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={entry.color}
@@ -131,7 +142,7 @@ export function SalesCharts({
             </ResponsiveContainer>
           </div>
           <div className="mt-6 space-y-3 px-4">
-            {dealsByCategory.map((item: any) => (
+            {dealsByCategory.map((item) => (
               <div
                 key={item.name}
                 className="flex items-center justify-between"

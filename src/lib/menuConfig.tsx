@@ -4,10 +4,8 @@ import {
   Wallet,
   Package,
   FolderKanban,
-  TrendingUp,
-  FileBarChart,
-  UserCog,
   Shield,
+  Bell,
 } from "lucide-react";
 
 export interface MenuItemConfig {
@@ -15,33 +13,44 @@ export interface MenuItemConfig {
   path: string;
   label: string;
   icon: React.ReactNode;
-  children?: { permissionKey: string; path: string; label: string }[];
+  children?: MenuItemChildConfig[];
+}
+
+export interface MenuItemChildConfig {
+  permissionKey: string;
+  path: string;
+  label: string;
+  children?: MenuItemChildConfig[];
 }
 
 /** All permission keys for RBAC (used in Role form) */
 export const ALL_PERMISSION_KEYS: string[] = [
   "dashboard",
   "finance",
-  "finance.accounting",
   "finance.invoice",
-  "finance.payment",
   "finance.purchase-orders",
   "finance.clients",
-  "finance.vendors",
   "finance.quotations",
   "finance.proposal-penawaran",
   "finance.perpajakan",
   "finance.bast",
-  "inventory",
+  "finance.catatan-pengeluaran",
+  "finance.kas-kecil",
+  "finance.kas-bank",
+  "finance.jurnal-memorial",
+  "finance.vouchers",
+  "finance.assets",
+  "finance.asset-acquisition-journals",
+  "finance.asset-depreciation-journals",
+  "finance.buku-besar",
+  "finance.neraca-saldo",
+  "assets",
   "projects",
-  "sales",
-  "reports",
-  "hr",
-  "hr.employees",
-  "hr.positions",
+  "notifications",
   "access_control",
   "access_control.roles",
   "access_control.users",
+  "finance.master-account",
 ];
 
 /** Menu structure with permission keys for RBAC-driven sidebar */
@@ -54,27 +63,47 @@ export const MAIN_NAV_MENU: MenuItemConfig[] = [
   },
   {
     permissionKey: "finance",
-    path: "/finance/accounting",
+    path: "/finance/invoice",
     label: "Finance",
     icon: <Wallet className="h-[18px] w-[18px]" />,
     children: [
-      { permissionKey: "finance.accounting", path: "/finance/accounting", label: "Accounting" },
       { permissionKey: "finance.invoice", path: "/finance/invoice", label: "Invoice" },
-      { permissionKey: "finance.payment", path: "/finance/payment", label: "Payment" },
       { permissionKey: "finance.purchase-orders", path: "/finance/purchase-orders", label: "Purchase Order" },
       { permissionKey: "finance.clients", path: "/finance/clients", label: "Clients" },
-      { permissionKey: "finance.vendors", path: "/finance/vendors", label: "Vendors" },
-      { permissionKey: "finance.quotations", path: "/finance/quotations", label: "Quotation" },
+      { permissionKey: "finance.quotations", path: "/finance/quotations", label: "Vendor Quotation" },
       { permissionKey: "finance.proposal-penawaran", path: "/finance/proposal-penawaran", label: "Proposal Penawaran" },
       { permissionKey: "finance.perpajakan", path: "/finance/perpajakan", label: "Perpajakan" },
       { permissionKey: "finance.bast", path: "/finance/bast", label: "BAST" },
+      // Catatan Pengeluaran (Module 6A)
+      {
+        permissionKey: "finance.catatan-pengeluaran",
+        path: "/finance/catatan-pengeluaran",
+        label: "Catatan Pengeluaran",
+        children: [
+          { permissionKey: "finance.kas-kecil", path: "/finance/kas-kecil", label: "Kas Kecil" },
+          { permissionKey: "finance.kas-bank", path: "/finance/kas-bank", label: "Kas Bank" },
+        ],
+      },
+      { permissionKey: "finance.jurnal-memorial", path: "/finance/jurnal-memorial", label: "Jurnal Memorial" },
+      // Voucher (Module 6B)
+      { permissionKey: "finance.vouchers", path: "/finance/vouchers", label: "Voucher" },
+      // Master Data (Module 6)
+      { permissionKey: "finance.master-account", path: "/finance/master-account", label: "Master Account" },
+      // Pembukuan (Module 6D)
+      { permissionKey: "finance.buku-besar", path: "/finance/buku-besar", label: "Buku Besar" },
+      { permissionKey: "finance.neraca-saldo", path: "/finance/neraca-saldo", label: "Neraca Saldo" },
     ],
   },
   {
-    permissionKey: "inventory",
-    path: "/inventory",
-    label: "Inventory",
+    permissionKey: "assets",
+    path: "/finance/assets",
+    label: "Laporan dan Jurnal Aset",
     icon: <Package className="h-[18px] w-[18px]" />,
+    children: [
+      { permissionKey: "finance.assets", path: "/finance/assets", label: "Daftar Aset" },
+      { permissionKey: "finance.asset-acquisition-journals", path: "/finance/asset-acquisition-journals", label: "Jurnal Memori Aset" },
+      { permissionKey: "finance.asset-depreciation-journals", path: "/finance/asset-depreciation-journals", label: "Jurnal Penyusutan Aset" },
+    ],
   },
   {
     permissionKey: "projects",
@@ -83,26 +112,10 @@ export const MAIN_NAV_MENU: MenuItemConfig[] = [
     icon: <FolderKanban className="h-[18px] w-[18px]" />,
   },
   {
-    permissionKey: "sales",
-    path: "/sales",
-    label: "Sales",
-    icon: <TrendingUp className="h-[18px] w-[18px]" />,
-  },
-  {
-    permissionKey: "reports",
-    path: "/reports",
-    label: "Reports",
-    icon: <FileBarChart className="h-[18px] w-[18px]" />,
-  },
-  {
-    permissionKey: "hr",
-    path: "/hr/employees",
-    label: "HR",
-    icon: <UserCog className="h-[18px] w-[18px]" />,
-    children: [
-      { permissionKey: "hr.employees", path: "/hr/employees", label: "Employee" },
-      { permissionKey: "hr.positions", path: "/hr/positions", label: "Positions" },
-    ],
+    permissionKey: "notifications",
+    path: "/notifications",
+    label: "Notifications",
+    icon: <Bell className="h-[18px] w-[18px]" />,
   },
   {
     permissionKey: "access_control",

@@ -16,16 +16,16 @@ export interface OrderInfo {
 
 /** Vendor PIC - Nama, Jabatan, Kontak */
 export interface VendorPic {
-  name: string;
-  position: string;
+  name?: string;
+  position?: string;
   contact?: string;
 }
 
-/** Vendor info - Nama Vendor, No. Telepon, PIC */
+/** Vendor info - Nama Vendor, No. Telepon, PIC (optional when clientId is used) */
 export interface VendorInfo {
-  vendorName: string;
-  phone: string;
-  pic: VendorPic;
+  vendorName?: string;
+  phone?: string;
+  pic?: VendorPic;
 }
 
 /** Line item - No, Item, Qty, Unit, Price, Subtotal, Tax, Price After Tax */
@@ -48,9 +48,33 @@ export interface DocumentApproval {
   signatureUrl?: string;
 }
 
+export type PurchaseOrderStatus = 'DRAFT' | 'APPROVED' | 'SENT' | 'RECEIVED';
+
 /** Main Purchase Order entity */
 export interface PurchaseOrder {
   id: string;
+  clientId?: number | null;
+  projectId?: number | null;
+  status?: PurchaseOrderStatus;
+  /** JSONB column — may be null for older records */
+  companyInfo: CompanyInfo | null;
+  /** JSONB column — may be null for older records */
+  orderInfo: OrderInfo | null;
+  /** JSONB column — may be null for older records */
+  vendorInfo: VendorInfo | null;
+  lineItems: PurchaseOrderLineItem[];
+  paymentProcedure?: string | null;
+  otherTerms?: string | null;
+  /** JSONB column — may be null for older records */
+  approval: DocumentApproval | null;
+  pdfUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type PurchaseOrderCreateInput = {
+  clientId?: number | null;
+  projectId?: number | null;
   companyInfo: CompanyInfo;
   orderInfo: OrderInfo;
   vendorInfo: VendorInfo;
@@ -58,10 +82,8 @@ export interface PurchaseOrder {
   paymentProcedure?: string;
   otherTerms?: string;
   approval: DocumentApproval;
-  pdfUrl?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+};
 
-export type PurchaseOrderCreateInput = Omit<PurchaseOrder, "id" | "createdAt" | "updatedAt">;
-export type PurchaseOrderUpdateInput = Partial<PurchaseOrderCreateInput>;
+export type PurchaseOrderUpdateInput = Partial<PurchaseOrderCreateInput> & {
+  status?: PurchaseOrderStatus;
+};

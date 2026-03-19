@@ -190,6 +190,14 @@
   }
 }
 
+@keyframes loader-cube {
+  0% { transform: rotate(0deg) scale(1); border-radius: 4px; }
+  50% { transform: rotate(180deg) scale(0.85); border-radius: 8px; }
+  100% { transform: rotate(360deg) scale(1); border-radius: 4px; }
+}
+
+.loader-cube { animation: loader-cube 1.25s infinite ease-in-out; }
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }

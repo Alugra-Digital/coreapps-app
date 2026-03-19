@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Quotation } from "../types";
 
 function formatCurrency(n: number): string {
-  return new Intl.NumberFormat("id-ID").format(n);
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 }
 
 const STATUS_LABELS: Record<string, string> = {

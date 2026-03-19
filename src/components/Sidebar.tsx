@@ -1,10 +1,6 @@
 import React, { useMemo } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
-  FileText,
-  ShieldCheck,
-  Star,
-  BarChart3,
   MessageSquare,
   LifeBuoy,
   Settings,
@@ -15,8 +11,6 @@ import {
   LogOut,
   Users,
   Briefcase,
-  Table,
-  User,
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,7 +21,7 @@ import { usePermissions, useAuth } from "@/contexts/AuthContext";
 import { MAIN_NAV_MENU, type MenuItemConfig } from "@/lib/menuConfig";
 import { hasPermission } from "@/lib/rbac";
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
+type SidebarProps = React.HTMLAttributes<HTMLDivElement>;
 
 /** Filter menu items by permissions: show item if user has permission or has any allowed child */
 function filterMenuByPermissions(
@@ -125,14 +119,46 @@ export function Sidebar({ className }: SidebarProps) {
                   hasChevron={hasChildren}
                   active={isParentActive}
                 >
-                  {childrenToShow.map((child) => (
-                    <SidebarSubItem
-                      key={child.permissionKey}
-                      to={child.path}
-                      label={child.label}
-                      active={location.pathname === child.path}
-                    />
-                  ))}
+                  {childrenToShow.map((child) => {
+                    const isChildActive = location.pathname === child.path;
+                    const hasGrandChildren = child.children && child.children.length > 0;
+                    const isGrandParentActive =
+                      child.children?.some((gc) => location.pathname === gc.path) ??
+                      location.pathname.startsWith(child.path);
+
+                    if (hasGrandChildren) {
+                      // Render sub-item with its own children (nested menu)
+                      return (
+                        <SidebarItem
+                          key={child.permissionKey}
+                          to={child.path}
+                          label={child.label}
+                          hasChevron={hasGrandChildren}
+                          active={isGrandParentActive}
+                          level={1}
+                        >
+                          {child.children.map((grandChild) => (
+                            <SidebarSubItem
+                              key={grandChild.permissionKey}
+                              to={grandChild.path}
+                              label={grandChild.label}
+                              active={location.pathname === grandChild.path}
+                            />
+                          ))}
+                        </SidebarItem>
+                      );
+                    }
+
+                    // Render regular sub-item
+                    return (
+                      <SidebarSubItem
+                        key={child.permissionKey}
+                        to={child.path}
+                        label={child.label}
+                        active={isChildActive}
+                      />
+                    );
+                  })}
                 </SidebarItem>
               );
             }
@@ -148,7 +174,7 @@ export function Sidebar({ className }: SidebarProps) {
           })}
         </div>
 
-        {/* HR Section - Always visible */}
+        {/* HR Section */}
         <div className="flex flex-col gap-1">
           <div className="px-3 mb-2">
             <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
@@ -166,39 +192,6 @@ export function Sidebar({ className }: SidebarProps) {
             icon={<Briefcase className="h-[18px] w-[18px]" />}
             label="Positions"
             active={location.pathname === "/hr/positions"}
-          />
-        </div>
-
-        {/* Analytics & Insights */}
-        <div className="flex flex-col gap-1">
-          <div className="px-3 mb-2">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Analytics & Insights
-            </h2>
-          </div>
-          <SidebarItem
-            to="/sla-compliance"
-            icon={<ShieldCheck className="h-[18px] w-[18px]" />}
-            label="SLA Compliance"
-            active={location.pathname === "/sla-compliance"}
-          />
-          <SidebarItem
-            to="/csat-nps"
-            icon={<Star className="h-[18px] w-[18px]" />}
-            label="CSAT & NPS"
-            active={location.pathname === "/csat-nps"}
-          />
-          <SidebarItem
-            to="/workload"
-            icon={<BarChart3 className="h-[18px] w-[18px]" />}
-            label="Workload Analytics"
-            active={location.pathname === "/workload"}
-          />
-          <SidebarItem
-            to="/reports"
-            icon={<FileText className="h-[18px] w-[18px]" />}
-            label="Reports"
-            active={location.pathname === "/reports"}
           />
         </div>
 
@@ -311,6 +304,7 @@ interface SidebarItemProps {
   active?: boolean;
   hasChevron?: boolean;
   children?: React.ReactNode;
+  level?: number;
 }
 
 function SidebarItem({
@@ -320,45 +314,83 @@ function SidebarItem({
   active = false,
   hasChevron = false,
   children,
+  level = 0,
 }: SidebarItemProps) {
+  const isSubItem = level > 0;
+
   return (
     <div className="relative group/menu">
-      <Link to={to} className="block w-full">
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start gap-3 px-3 h-10 font-medium transition-all group",
-            active
-              ? "bg-white dark:bg-primary/10 text-sidebar-primary shadow-[0_2px_4px_rgba(0,0,0,0.04)] ring-1 ring-sidebar-border dark:ring-primary/20 hover:bg-white dark:hover:bg-primary/20"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-          )}
+      {isSubItem ? (
+        <Link
+          to={to}
+          className="relative flex items-center h-8 group cursor-pointer pl-6"
         >
-          <div
+          {/* Horizontal line: Connects from parent's vertical line to the label */}
+          <div className="absolute left-0 top-4 w-6 h-px bg-sidebar-border" />
+          <span
             className={cn(
-              "transition-colors",
+              "text-sm transition-colors",
               active
-                ? "text-sidebar-primary"
-                : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300",
+                ? "text-sidebar-primary font-bold"
+                : "text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300",
             )}
           >
-            {icon}
-          </div>
-          <span className="flex-1 text-left text-sm">{label}</span>
+            {label}
+          </span>
           {hasChevron && (
             <ChevronDown
               className={cn(
-                "h-4 w-4 transition-transform text-slate-300 group-hover:text-slate-400 dark:text-slate-600",
+                "ml-auto h-3 w-3 transition-transform text-slate-300 group-hover:text-slate-400 dark:text-slate-600",
                 children && "group-hover/menu:rotate-180",
               )}
             />
           )}
-        </Button>
-      </Link>
+        </Link>
+      ) : (
+        <Link to={to} className="block w-full">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-3 px-3 h-10 font-medium transition-all group",
+              active
+                ? "bg-white dark:bg-primary/10 text-sidebar-primary shadow-[0_2px_4px_rgba(0,0,0,0.04)] ring-1 ring-sidebar-border dark:ring-primary/20 hover:bg-white dark:hover:bg-primary/20"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+            )}
+          >
+            <div
+              className={cn(
+                "transition-colors",
+                active
+                  ? "text-sidebar-primary"
+                  : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300",
+              )}
+            >
+              {icon}
+            </div>
+            <span className="flex-1 text-left text-sm">{label}</span>
+            {hasChevron && (
+              <ChevronDown
+                className={cn(
+                  "h-4 w-4 transition-transform text-slate-300 group-hover:text-slate-400 dark:text-slate-600",
+                  children && "group-hover/menu:rotate-180",
+                )}
+              />
+            )}
+          </Button>
+        </Link>
+      )}
 
       {children && (
-        <div className="hidden group-hover/menu:block pl-4 mt-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-200 relative">
+        <div
+          className={cn(
+            "hidden group-hover/menu:block space-y-1 animate-in fade-in slide-in-from-top-1 duration-200 relative",
+            isSubItem ? "pl-6 mt-1" : "pl-4 mt-1",
+          )}
+        >
           {/* Vertical line: extends up (-top-1) to bridge mt-1 gap and connect to parent */}
-          <div className="absolute left-4 -top-1 bottom-0 w-px bg-sidebar-border" />
+          <div
+            className={cn("absolute -top-1 bottom-0 w-px bg-sidebar-border", isSubItem ? "left-6" : "left-4")}
+          />
           {children}
         </div>
       )}

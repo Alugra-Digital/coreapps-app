@@ -22,8 +22,9 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { positionFormSchema, type PositionFormValues } from "../schema";
-import { createPosition, updatePosition } from "@/api/positions";
+import { useCreatePosition, useUpdatePosition } from "@/hooks/usePositions";
 import type { Position } from "../types";
+import { toast } from "sonner";
 
 interface PositionFormDialogProps {
   open: boolean;
@@ -39,6 +40,8 @@ export function PositionFormDialog({
   onSuccess,
 }: PositionFormDialogProps) {
   const isEdit = !!position;
+  const createMutation = useCreatePosition();
+  const updateMutation = useUpdatePosition();
 
   const form = useForm<PositionFormValues>({
     resolver: zodResolver(positionFormSchema),
@@ -68,7 +71,7 @@ export function PositionFormDialog({
     }
   }, [position, open, form]);
 
-  const onSubmit = async (values: PositionFormValues) => {
+  const onSubmit = (values: PositionFormValues) => {
     const payload = {
       name: values.name,
       code: values.code || undefined,
@@ -76,12 +79,25 @@ export function PositionFormDialog({
       isActive: values.isActive,
     };
 
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && position) {
-      await updatePosition(position.id, payload);
+      updateMutation.mutate(
+        { id: position.id, input: payload },
+        {
+          onSuccess: handleSuccess,
+          onError: () => toast.error("Failed to update position"),
+        }
+      );
     } else {
-      await createPosition(payload);
+      createMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: () => toast.error("Failed to create position"),
+      });
     }
-    onSuccess();
   };
 
   return (
@@ -176,8 +192,15 @@ export function PositionFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

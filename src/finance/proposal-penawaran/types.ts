@@ -38,7 +38,7 @@ export interface DocumentApproval {
   signatureUrl?: string;
 }
 
-export type ProposalStatus = "draft" | "sent" | "accepted" | "rejected";
+export type ProposalStatus = "draft" | "sent" | "accepted" | "rejected" | "cancelled";
 
 /** Main Proposal Penawaran entity */
 export interface ProposalPenawaran {

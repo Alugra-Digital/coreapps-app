@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -27,14 +27,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { projectFormSchema, type ProjectFormValues } from "../schema";
-import { createProject, updateProject } from "@/api/projects";
-import { getClients } from "@/api/clients";
-import { getEmployees } from "@/api/employees";
+import { useCreateProject, useUpdateProject } from "@/hooks/useProjects";
+import { useClients } from "@/hooks/useClients";
+import { useEmployees } from "@/hooks/useEmployees";
+import { getProposalById } from "@/api/proposal-penawaran";
+import { toast } from "sonner";
 import type { Project } from "../types";
-import type { Client } from "@/api/clients";
 
 interface ProjectFormDialogProps {
   open: boolean;
@@ -49,11 +51,12 @@ const defaultIdentity = {
   clientId: "",
   clientName: "",
   scopeProject: "",
+  price: 0,
   startDate: new Date().toISOString().slice(0, 10),
   endDate: new Date().toISOString().slice(0, 10),
   projectManagerId: "",
   projectManagerName: "",
-  status: "on_progress" as const,
+  status: "ON_PROGRESS" as const,
 };
 
 const defaultDocumentRelations = {
@@ -64,18 +67,20 @@ const defaultDocumentRelations = {
   bastIds: [] as string[],
 };
 
-const defaultFinance = {
-  income: 0,
-  expense: 0,
-  profitLoss: 0,
-};
-
 const DOC_TYPE_OPTIONS = [
   { value: "contract", label: "Contract" },
   { value: "photo", label: "Photo" },
   { value: "file", label: "File" },
   { value: "report", label: "Report" },
 ];
+
+function formatCurrencyDisplay(value: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(value);
+}
 
 export function ProjectFormDialog({
   open,
@@ -84,55 +89,85 @@ export function ProjectFormDialog({
   onSuccess,
 }: ProjectFormDialogProps) {
   const isEdit = !!project;
-  const [clients, setClients] = useState<Client[]>([]);
-  const [employees, setEmployees] = useState<{ id: string; namaKaryawan: string }[]>([]);
+  const createMutation = useCreateProject();
+  const updateMutation = useUpdateProject();
+  const { data: clientsData = [] } = useClients();
+  const { data: employeesData = [] } = useEmployees();
 
-  useEffect(() => {
-    if (open) {
-      getClients().then(setClients);
-      getEmployees().then((emps) => {
-        const list = emps.map((e) => ({ id: e.id, namaKaryawan: e.namaKaryawan }));
-        if (project?.identity.projectManagerId && project.identity.projectManagerName) {
-          const exists = list.some((e) => e.id === project.identity.projectManagerId);
-          if (!exists) {
-            list.unshift({
-              id: project.identity.projectManagerId,
-              namaKaryawan: project.identity.projectManagerName,
-            });
-          }
-        }
-        setEmployees(list);
-      });
+  const clients = clientsData;
+  const employees = React.useMemo(() => {
+    const list = employeesData.map((e) => ({
+      id: e.id,
+      namaKaryawan: e.namaKaryawan,
+    }));
+    if (open && project?.identity.projectManagerId && project.identity.projectManagerName) {
+      const exists = list.some((e) => e.id === project.identity.projectManagerId);
+      if (!exists) {
+        list.unshift({
+          id: project.identity.projectManagerId,
+          namaKaryawan: project.identity.projectManagerName,
+        });
+      }
     }
-  }, [open, project]);
+    return list;
+  }, [employeesData, open, project?.identity.projectManagerId, project?.identity.projectManagerName]);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
       identity: defaultIdentity,
       documentRelations: defaultDocumentRelations,
-      finance: defaultFinance,
+      expenses: [],
       documents: [],
     },
   });
 
-  const income = form.watch("finance.income");
-  const expense = form.watch("finance.expense");
+  // ─── Proposal auto-fetch helper ─────────────────────────────────
+  const fetchAndApplyProposal = useCallback(
+    async (proposalId: string) => {
+      try {
+        const proposal = await getProposalById(proposalId);
+        if (!proposal) return;
 
-  const updateProfitLoss = useCallback(() => {
-    const pl = (income ?? 0) - (expense ?? 0);
-    form.setValue("finance.profitLoss", pl);
-  }, [income, expense, form]);
+        // Map proposal fields → project form
+        if (proposal.coverInfo?.jobOffer) {
+          form.setValue("identity.namaProject", proposal.coverInfo.jobOffer);
+        }
+        if (proposal.clientInfo?.clientId) {
+          form.setValue("identity.clientId", String(proposal.clientInfo.clientId));
+        }
+        if (proposal.clientInfo?.clientName) {
+          form.setValue("identity.clientName", proposal.clientInfo.clientName);
+        }
+        if (Array.isArray(proposal.scopeOfWork) && proposal.scopeOfWork.length > 0) {
+          form.setValue("identity.scopeProject", proposal.scopeOfWork.join("; "));
+        }
+        if (proposal.totalEstimatedCost != null) {
+          form.setValue("identity.price", Number(proposal.totalEstimatedCost) || 0);
+        }
 
-  useEffect(() => {
-    updateProfitLoss();
-  }, [income, expense, updateProfitLoss]);
+        toast.success(`Project fields populated from Proposal ${proposal.proposalNumber ?? proposalId}`);
+      } catch {
+        // Silently fail — user can still fill manually
+      }
+    },
+    [form]
+  );
 
-  const addDocId = (field: keyof typeof defaultDocumentRelations, value: string) => {
-    if (!value.trim()) return;
-    const current = form.getValues(`documentRelations.${field}`) || [];
-    form.setValue(`documentRelations.${field}`, [...current, value.trim()]);
-  };
+  // ─── Document relation helpers ──────────────────────────────────
+  const addDocId = useCallback(
+    (field: keyof typeof defaultDocumentRelations, value: string) => {
+      if (!value.trim()) return;
+      const current = form.getValues(`documentRelations.${field}`) || [];
+      form.setValue(`documentRelations.${field}`, [...current, value.trim()]);
+
+      // Auto-fetch proposal when a Proposal ID is added
+      if (field === "proposalIds") {
+        fetchAndApplyProposal(value.trim());
+      }
+    },
+    [form, fetchAndApplyProposal]
+  );
 
   const removeDocId = (field: keyof typeof defaultDocumentRelations, index: number) => {
     const current = form.getValues(`documentRelations.${field}`) || [];
@@ -142,6 +177,7 @@ export function ProjectFormDialog({
     );
   };
 
+  // ─── Supporting document helpers ────────────────────────────────
   const addDocument = () => {
     const current = form.getValues("documents") || [];
     form.setValue("documents", [
@@ -158,26 +194,64 @@ export function ProjectFormDialog({
     );
   };
 
+  // ─── Expense helpers ────────────────────────────────────────────
+  const addExpense = (phase: "PRE_COST" | "ON_GOING") => {
+    const current = form.getValues("expenses") || [];
+    form.setValue("expenses", [
+      ...current,
+      {
+        description: "",
+        date: new Date().toISOString().slice(0, 10),
+        amount: 0,
+        phase,
+      },
+    ]);
+  };
+
+  const removeExpense = (index: number) => {
+    const current = form.getValues("expenses") || [];
+    form.setValue(
+      "expenses",
+      current.filter((_, i) => i !== index)
+    );
+  };
+
+  // ─── Reset form on open/edit ────────────────────────────────────
   useEffect(() => {
     if (project) {
+      // Map existing project expenses to form format
+      const expenses = (project.expenses ?? []).map((e) => ({
+        description: e.description ?? "",
+        date: e.date ?? new Date().toISOString().slice(0, 10),
+        amount: e.amount ?? 0,
+        phase: (e.phase ?? "ON_GOING") as "PRE_COST" | "ON_GOING",
+      }));
       form.reset({
-        identity: project.identity,
+        identity: { ...defaultIdentity, ...project.identity, price: project.identity.price ?? 0 },
         documentRelations: project.documentRelations,
-        finance: project.finance,
+        expenses,
         documents: project.documents,
       });
     } else if (open) {
       form.reset({
         identity: { ...defaultIdentity, startDate: new Date().toISOString().slice(0, 10), endDate: new Date().toISOString().slice(0, 10) },
         documentRelations: defaultDocumentRelations,
-        finance: defaultFinance,
+        expenses: [],
         documents: [],
       });
     }
   }, [project, open, form]);
 
-  const onSubmit = async (values: ProjectFormValues) => {
-    const profitLoss = (values.finance.income ?? 0) - (values.finance.expense ?? 0);
+  // ─── Computed expense totals ────────────────────────────────────
+  const watchedExpenses = form.watch("expenses") || [];
+  const preCostItems = watchedExpenses.filter((e) => e.phase === "PRE_COST");
+  const onGoingItems = watchedExpenses.filter((e) => e.phase === "ON_GOING");
+  const preCostTotal = preCostItems.reduce((s, e) => s + (e.amount || 0), 0);
+  const onGoingTotal = onGoingItems.reduce((s, e) => s + (e.amount || 0), 0);
+  const totalExpense = preCostTotal + onGoingTotal;
+
+  // ─── Submit ─────────────────────────────────────────────────────
+  const onSubmit = (values: ProjectFormValues) => {
     const payload = {
       identity: {
         ...values.identity,
@@ -186,10 +260,10 @@ export function ProjectFormDialog({
       },
       documentRelations: values.documentRelations,
       finance: {
-        income: values.finance.income,
-        expense: values.finance.expense,
-        profitLoss,
+        expense: totalExpense,
+        totalExpense,
       },
+      expenses: values.expenses,
       documents: values.documents
         .filter((d): d is { url: string; name: string; type?: string; uploadedAt?: string } => !!(d.name && d.url))
         .map((d) => ({
@@ -200,12 +274,43 @@ export function ProjectFormDialog({
         })),
     };
 
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && project) {
-      await updateProject(project.id, payload);
+      updateMutation.mutate(
+        { id: project.id, input: payload },
+        {
+          onSuccess: () => {
+            toast.success("Project updated successfully.");
+            handleSuccess();
+          },
+          onError: (err) => {
+            const message =
+              err && typeof err === "object" && "message" in err
+                ? String((err as { message: string }).message)
+                : "Failed to save project.";
+            toast.error(message);
+          },
+        }
+      );
     } else {
-      await createProject(payload);
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          toast.success("Project created successfully.");
+          handleSuccess();
+        },
+        onError: (err) => {
+          const message =
+            err && typeof err === "object" && "message" in err
+              ? String((err as { message: string }).message)
+              : "Failed to save project.";
+          toast.error(message);
+        },
+      });
     }
-    onSuccess();
   };
 
   return (
@@ -237,6 +342,7 @@ export function ProjectFormDialog({
               </TabsList>
 
               <ScrollArea className="flex-1 px-6 pb-4">
+                {/* ═══ IDENTITY TAB ═══ */}
                 <TabsContent value="identity" className="mt-0 space-y-4">
                   <FormField
                     control={form.control}
@@ -270,27 +376,27 @@ export function ProjectFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Klien</FormLabel>
-                        <Select
-                          onValueChange={(v) => {
-                            field.onChange(v);
-                            const c = clients.find((x) => x.id === v);
-                            if (c) form.setValue("identity.clientName", c.name);
-                          }}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue placeholder="Select client" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {clients.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <EntityCombobox
+                            items={clients.map((c) => ({
+                              id: c.id,
+                              label: c.companyName || c.name,
+                            }))}
+                            value={field.value}
+                            onValueChange={(v) => {
+                              field.onChange(v);
+                              const c = clients.find((x) => x.id === v);
+                              if (c)
+                                form.setValue(
+                                  "identity.clientName",
+                                  c.companyName || c.name
+                                );
+                            }}
+                            placeholder="Select client"
+                            searchPlaceholder="Search client..."
+                            emptyText="No client found."
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -303,6 +409,26 @@ export function ProjectFormDialog({
                         <FormLabel className="text-xs">Scope Project</FormLabel>
                         <FormControl>
                           <Textarea {...field} rows={2} className="text-sm resize-none" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="identity.price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Price / Contract Value (IDR)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            {...field}
+                            value={field.value ?? 0}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            className="h-9 text-sm"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -342,27 +468,26 @@ export function ProjectFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Project Manager / PIC Internal</FormLabel>
-                        <Select
-                          onValueChange={(v) => {
-                            field.onChange(v);
-                            const emp = employees.find((e) => e.id === v);
-                            form.setValue("identity.projectManagerName", emp?.namaKaryawan ?? v);
-                          }}
-                          value={field.value || undefined}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue placeholder="Select PM" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {employees.map((e) => (
-                              <SelectItem key={e.id} value={e.id}>
-                                {e.namaKaryawan}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <EntityCombobox
+                            items={employees.map((e) => ({
+                              id: e.id,
+                              label: e.namaKaryawan,
+                            }))}
+                            value={field.value || ""}
+                            onValueChange={(v) => {
+                              field.onChange(v);
+                              const emp = employees.find((e) => e.id === v);
+                              form.setValue(
+                                "identity.projectManagerName",
+                                emp?.namaKaryawan ?? v
+                              );
+                            }}
+                            placeholder="Select PM"
+                            searchPlaceholder="Search PM..."
+                            emptyText="No PM found."
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -380,9 +505,15 @@ export function ProjectFormDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="on_progress">On Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="PIPELINE">Pipeline</SelectItem>
+                            <SelectItem value="NEGOTIATION">Negosiasi</SelectItem>
+                            <SelectItem value="WON">Won</SelectItem>
+                            <SelectItem value="LOST">Lost</SelectItem>
+                            <SelectItem value="ON_PROGRESS">On Progress</SelectItem>
+                            <SelectItem value="ON_HOLD">On Hold</SelectItem>
+                            <SelectItem value="READY_TO_CLOSE">Ready to Close</SelectItem>
+                            <SelectItem value="COMPLETED">Completed</SelectItem>
+                            <SelectItem value="CANCELLED">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -391,6 +522,7 @@ export function ProjectFormDialog({
                   />
                 </TabsContent>
 
+                {/* ═══ DOCUMENT RELATIONS TAB ═══ */}
                 <TabsContent value="documents" className="mt-0 space-y-4">
                   <DocIdListField
                     form={form}
@@ -429,57 +561,76 @@ export function ProjectFormDialog({
                   />
                 </TabsContent>
 
-                <TabsContent value="finance" className="mt-0 space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="finance.income"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Income</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                            className="h-9 text-sm"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                {/* ═══ FINANCE TAB — EXPENSE LIST ═══ */}
+                <TabsContent value="finance" className="mt-0 space-y-6">
+                  {/* Pre-cost section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Pre-cost (Before Project Start)
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 text-xs"
+                        onClick={() => addExpense("PRE_COST")}
+                      >
+                        <Plus className="h-3 w-3" /> Add
+                      </Button>
+                    </div>
+                    {watchedExpenses.map((exp, index) =>
+                      exp.phase === "PRE_COST" ? (
+                        <ExpenseRow key={index} form={form} index={index} onRemove={removeExpense} />
+                      ) : null
                     )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="finance.expense"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Expense</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={0}
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                            className="h-9 text-sm"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    {preCostItems.length === 0 && (
+                      <p className="text-xs text-slate-400">No pre-cost expenses.</p>
                     )}
-                  />
-                  <div>
-                    <FormLabel className="text-xs">Profit/Loss</FormLabel>
-                    <p className="text-sm font-medium mt-1">
-                      {new Intl.NumberFormat("id-ID", {
-                        style: "currency",
-                        currency: "IDR",
-                        minimumFractionDigits: 0,
-                      }).format(form.watch("finance.profitLoss") ?? 0)}
-                    </p>
+                    <div className="text-xs font-medium text-right text-slate-600 dark:text-slate-400">
+                      Subtotal: {formatCurrencyDisplay(preCostTotal)}
+                    </div>
+                  </div>
+
+                  <hr className="border-slate-200 dark:border-white/10" />
+
+                  {/* On-going section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        On-going (During Project)
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 text-xs"
+                        onClick={() => addExpense("ON_GOING")}
+                      >
+                        <Plus className="h-3 w-3" /> Add
+                      </Button>
+                    </div>
+                    {watchedExpenses.map((exp, index) =>
+                      exp.phase === "ON_GOING" ? (
+                        <ExpenseRow key={index} form={form} index={index} onRemove={removeExpense} />
+                      ) : null
+                    )}
+                    {onGoingItems.length === 0 && (
+                      <p className="text-xs text-slate-400">No on-going expenses.</p>
+                    )}
+                    <div className="text-xs font-medium text-right text-slate-600 dark:text-slate-400">
+                      Subtotal: {formatCurrencyDisplay(onGoingTotal)}
+                    </div>
+                  </div>
+
+                  <hr className="border-slate-200 dark:border-white/10" />
+
+                  <div className="text-sm font-bold text-right">
+                    Total Expense: {formatCurrencyDisplay(totalExpense)}
                   </div>
                 </TabsContent>
 
+                {/* ═══ DOCUMENTATION TAB ═══ */}
                 <TabsContent value="supporting" className="mt-0 space-y-4">
                   <div className="flex justify-between items-center">
                     <FormLabel className="text-xs">Supporting Documents</FormLabel>
@@ -560,8 +711,15 @@ export function ProjectFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>
@@ -571,6 +729,77 @@ export function ProjectFormDialog({
   );
 }
 
+// ─── Expense Row Component ────────────────────────────────────────
+function ExpenseRow({
+  form,
+  index,
+  onRemove,
+}: {
+  form: ReturnType<typeof useForm<ProjectFormValues>>;
+  index: number;
+  onRemove: (i: number) => void;
+}) {
+  return (
+    <div className="grid grid-cols-12 gap-2 p-2 rounded border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-white/5">
+      <FormField
+        control={form.control}
+        name={`expenses.${index}.description`}
+        render={({ field }) => (
+          <FormItem className="col-span-5">
+            <FormControl>
+              <Input {...field} placeholder="Description" className="h-8 text-sm" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name={`expenses.${index}.date`}
+        render={({ field }) => (
+          <FormItem className="col-span-3">
+            <FormControl>
+              <Input {...field} type="date" className="h-8 text-sm" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name={`expenses.${index}.amount`}
+        render={({ field }) => (
+          <FormItem className="col-span-3">
+            <FormControl>
+              <Input
+                type="number"
+                min={0}
+                {...field}
+                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                placeholder="Amount"
+                className="h-8 text-sm"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <div className="col-span-1 flex items-center">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-red-500 hover:text-red-600"
+          onClick={() => onRemove(index)}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Document ID List Field ────────────────────────────────────────
 function DocIdListField({
   form,
   field,

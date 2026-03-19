@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye } from "lucide-react";
+import { Fragment } from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,8 +24,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { bastFormSchema, type BASTFormValues } from "../schema";
-import { createBast, updateBast } from "@/api/bast";
+import { useCreateBast, useUpdateBast } from "@/hooks/useBast";
 import type { BAST } from "../types";
+import { toast } from "sonner";
+import { FinancePreviewDialog, usePreviewForm } from "@/finance/components/preview";
+import { bastPreviewConfig } from "../preview-config";
 
 interface BASTFormDialogProps {
   open: boolean;
@@ -60,6 +65,8 @@ export function BASTFormDialog({
   onSuccess,
 }: BASTFormDialogProps) {
   const isEdit = !!bast;
+  const createMutation = useCreateBast();
+  const updateMutation = useUpdateBast();
 
   const form = useForm<BASTFormValues>({
     resolver: zodResolver(bastFormSchema),
@@ -69,6 +76,37 @@ export function BASTFormDialog({
       deliveringParty: defaultPartySignature,
       receivingParty: defaultPartySignature,
     },
+  });
+
+  // Preview form hook - manages preview dialog flow
+  const previewForm = usePreviewForm({
+    form,
+    onSubmit: async (values) => {
+      // This is called after confirming in preview dialog
+      const payload = {
+        coverInfo: values.coverInfo,
+        documentInfo: values.documentInfo,
+        deliveringParty: {
+          ...values.deliveringParty,
+          signatureUrl: values.deliveringParty.signatureUrl || undefined,
+        },
+        receivingParty: {
+          ...values.receivingParty,
+          signatureUrl: values.receivingParty.signatureUrl || undefined,
+        },
+      };
+
+      if (isEdit && bast) {
+        await updateMutation.mutate({ id: bast.id, input: payload });
+        toast.success('BAST berhasil diperbarui');
+      } else {
+        await createMutation.mutate(payload);
+        toast.success('BAST berhasil dibuat');
+      }
+      onOpenChange(false);
+      onSuccess();
+    },
+    config: bastPreviewConfig,
   });
 
   useEffect(() => {
@@ -104,29 +142,14 @@ export function BASTFormDialog({
     }
   }, [bast, open, form]);
 
-  const onSubmit = async (values: BASTFormValues) => {
-    const payload = {
-      coverInfo: values.coverInfo,
-      documentInfo: values.documentInfo,
-      deliveringParty: {
-        ...values.deliveringParty,
-        signatureUrl: values.deliveringParty.signatureUrl || undefined,
-      },
-      receivingParty: {
-        ...values.receivingParty,
-        signatureUrl: values.receivingParty.signatureUrl || undefined,
-      },
-    };
-
-    if (isEdit && bast) {
-      await updateBast(bast.id, payload);
-    } else {
-      await createBast(payload);
-    }
-    onSuccess();
+  // Handle form submit - use preview instead of direct submit
+  const onSubmit = async () => {
+    const valid = await previewForm.handlePreview();
+    if (!valid) return;
   };
 
   return (
+    <Fragment>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-4">
@@ -394,13 +417,37 @@ export function BASTFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={previewForm.handlePreview}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </Button>
+              <Button
+                type="submit"
+                className="hidden"
+              >
+                Hidden Submit
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  );
+
+  {/* Preview Dialog */}
+  <FinancePreviewDialog
+    open={previewForm.previewOpen}
+    onOpenChange={(open) => !open && onOpenChange(false)}
+    data={previewForm.previewData}
+    title={isEdit ? "Preview Edit BAST" : "Preview Add BAST"}
+    config={bastPreviewConfig}
+    onConfirm={previewForm.handleConfirm}
+    onEdit={previewForm.handleEdit}
+    isSubmitting={previewForm.isSubmitting}
+  />
+  </Fragment>
+);
 }

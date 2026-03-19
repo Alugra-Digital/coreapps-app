@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { terbilang } from "@/lib/currency";
 import type { ProposalPenawaran } from "../types";
 
 interface ProposalPenawaranViewDialogProps {
@@ -16,35 +18,68 @@ interface ProposalPenawaranViewDialogProps {
   onEdit: () => void;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  accepted: "Accepted",
-  rejected: "Rejected",
-};
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const MONTHS_ID = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
-
-function formatDate(dateStr: string): string {
-  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (match) {
-    const [, y, m, d] = match;
-    const month = MONTHS_ID[parseInt(m, 10) - 1];
-    return `${parseInt(d, 10)} ${month} ${y}`;
-  }
-  return dateStr;
-}
-
-function formatCurrency(value: number, currency: string = "IDR"): string {
+function formatCurrency(value: number, currency = "IDR"): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
   }).format(value);
 }
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const MONTHS_ID = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  ];
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) {
+    const [, y, m, d] = match;
+    return `${parseInt(d, 10)} ${MONTHS_ID[parseInt(m, 10) - 1]} ${y}`;
+  }
+  return dateStr;
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 my-1">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 whitespace-nowrap">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[180px_1fr] gap-2 py-1 text-sm">
+      <span className="text-slate-500 dark:text-slate-400 shrink-0">{label}</span>
+      <span className="font-medium text-slate-900 dark:text-foreground break-words">{value ?? "—"}</span>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { label: string; className: string }> = {
+    draft: { label: "Draft", className: "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600" },
+    sent: { label: "Sent", className: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-700" },
+    accepted: { label: "Accepted", className: "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700" },
+    rejected: { label: "Rejected", className: "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-700" },
+  };
+  const c = config[status] ?? { label: status, className: "" };
+  return (
+    <Badge variant="outline" className={`text-xs font-semibold px-2 py-0.5 ${c.className}`}>
+      {c.label}
+    </Badge>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ProposalPenawaranViewDialog({
   proposal,
@@ -54,189 +89,175 @@ export function ProposalPenawaranViewDialog({
   if (!proposal) return null;
 
   const { coverInfo, clientInfo, items, documentApproval } = proposal;
+  const total = proposal.totalEstimatedCost ?? 0;
+  const currency = proposal.currency ?? "IDR";
+  const terbilangText = total > 0 ? terbilang(total) + " Rupiah" : proposal.totalEstimatedCostInWords;
 
   return (
     <Dialog open={!!proposal} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-4">
-          <DialogTitle>Proposal - {proposal.proposalNumber}</DialogTitle>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+        {/* Header */}
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-white/10 shrink-0">
+          <DialogTitle className="text-base font-bold text-slate-900 dark:text-foreground">
+            Proposal — {proposal.proposalNumber}
+          </DialogTitle>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            {coverInfo.jobOffer}
+          </p>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 pb-4 max-h-[60vh]">
-          <div className="space-y-6">
-            {/* Cover */}
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Cover
-              </h3>
-              <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-4 space-y-2 text-sm">
-                <p>
-                  <span className="text-slate-500">Penawaran:</span>{" "}
-                  <span className="font-medium">{coverInfo.jobOffer}</span>
-                </p>
-                <p>
-                  <span className="text-slate-500">Nama Perusahaan:</span>{" "}
-                  <span className="font-medium">{coverInfo.companyName}</span>
-                </p>
-                <p>
-                  <span className="text-slate-500">Bulan Proposal:</span>{" "}
-                  <span className="font-medium">{coverInfo.proposalMonth}</span>
-                </p>
-                <p>
-                  <span className="text-slate-500">Alamat:</span> {coverInfo.address}
-                </p>
-                <p>
-                  <span className="text-slate-500">Tel:</span> {coverInfo.phone}
-                </p>
-                {coverInfo.email && (
-                  <p>
-                    <span className="text-slate-500">Email:</span> {coverInfo.email}
-                  </p>
-                )}
+        {/* Body */}
+        <ScrollArea className="flex-1 overflow-y-auto">
+          <div className="px-6 py-4 space-y-5">
+
+            {/* ── COVER ── */}
+            <section className="space-y-1">
+              <SectionDivider label="Cover" />
+              <div className="pt-1">
+                <Row label="Penawaran" value={coverInfo.jobOffer} />
+                <Row label="Nama Perusahaan" value={coverInfo.companyName} />
+                <Row label="Bulan Proposal" value={coverInfo.proposalMonth} />
+                <Row label="Alamat" value={coverInfo.address} />
+                <Row label="Telepon" value={coverInfo.phone} />
+                {coverInfo.email && <Row label="Email" value={coverInfo.email} />}
               </div>
             </section>
 
-            {/* Content & Client */}
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Isi & Klien
-              </h3>
-              <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-4 space-y-2 text-sm">
-                <p>
-                  <span className="text-slate-500">Nomor Proposal:</span>{" "}
-                  <span className="font-medium">{proposal.proposalNumber}</span>
-                </p>
-                <p>
-                  <span className="text-slate-500">Client:</span>{" "}
-                  <span className="font-medium">{clientInfo.clientName}</span>
-                </p>
-                {clientInfo.contactPerson && (
-                  <p>
-                    <span className="text-slate-500">Contact Person:</span>{" "}
-                    {clientInfo.contactPerson}
-                  </p>
-                )}
-                {clientInfo.email && (
-                  <p>
-                    <span className="text-slate-500">Email:</span> {clientInfo.email}
-                  </p>
-                )}
-                {clientInfo.phone && (
-                  <p>
-                    <span className="text-slate-500">Phone:</span> {clientInfo.phone}
-                  </p>
-                )}
-                <p>
-                  <span className="text-slate-500">Status:</span>{" "}
-                  <span className="font-medium">{STATUS_LABELS[proposal.status] ?? proposal.status}</span>
-                </p>
+            {/* ── ISI & KLIEN ── */}
+            <section className="space-y-1">
+              <SectionDivider label="Isi & Klien" />
+              <div className="pt-1">
+                <Row label="Nomor Proposal" value={proposal.proposalNumber} />
+                <Row label="Client" value={clientInfo.clientName} />
+                {clientInfo.contactPerson && <Row label="Contact Person" value={clientInfo.contactPerson} />}
+                {clientInfo.email && <Row label="Email Client" value={clientInfo.email} />}
+                {clientInfo.phone && <Row label="Phone Client" value={clientInfo.phone} />}
+                <div className="grid grid-cols-[180px_1fr] gap-2 py-1 text-sm items-center">
+                  <span className="text-slate-500 dark:text-slate-400">Status</span>
+                  <StatusBadge status={proposal.status} />
+                </div>
               </div>
             </section>
 
-            {/* Items */}
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Detail Penawaran Pekerjaan/Jasa
-              </h3>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-white/5">
-                    <tr>
-                      <th className="text-left p-2 text-[10px] font-bold text-slate-500">No</th>
-                      <th className="text-left p-2 text-[10px] font-bold text-slate-500">Deskripsi</th>
-                      <th className="text-right p-2 text-[10px] font-bold text-slate-500">Qty</th>
-                      <th className="text-left p-2 text-[10px] font-bold text-slate-500">Volume</th>
-                      <th className="text-right p-2 text-[10px] font-bold text-slate-500">Price</th>
-                      <th className="text-right p-2 text-[10px] font-bold text-slate-500">Total</th>
+            {/* ── DETAIL PENAWARAN ── */}
+            <section className="space-y-0">
+              <SectionDivider label="Detail Penawaran Pekerjaan/Jasa" />
+              <div className="w-full overflow-x-auto rounded-md border border-slate-200 dark:border-white/10 mt-2">
+                <table className="w-full text-xs min-w-[550px]">
+                  <thead>
+                    <tr className="bg-muted/50 border-b border-border text-[10px] uppercase text-muted-foreground">
+                      <th className="px-2 py-2 font-semibold text-center w-[5%]">No</th>
+                      <th className="px-2 py-2 font-semibold text-left w-[45%]">Deskripsi</th>
+                      <th className="px-2 py-2 font-semibold text-center w-[8%]">Qty</th>
+                      <th className="px-2 py-2 font-semibold text-center w-[8%]">Vol</th>
+                      <th className="px-2 py-2 font-semibold text-right w-[15%]">Price</th>
+                      <th className="px-2 py-2 font-semibold text-right w-[19%]">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item) => (
-                      <tr key={item.number} className="border-t border-slate-100 dark:border-white/5">
-                        <td className="p-2">{item.number}</td>
-                        <td className="p-2">{item.description}</td>
-                        <td className="p-2 text-right">{item.quantity}</td>
-                        <td className="p-2">{item.volume}</td>
-                        <td className="p-2 text-right">{formatCurrency(item.unitPrice, proposal.currency)}</td>
-                        <td className="p-2 text-right font-medium">
-                          {formatCurrency(item.totalPrice, proposal.currency)}
+                    {items.map((item, idx) => (
+                      <tr
+                        key={item.number ?? idx}
+                        className={`border-b border-border hover:bg-muted/30 transition-colors ${idx % 2 !== 0 ? "bg-muted/20" : ""
+                          }`}
+                      >
+                        <td className="px-2 py-2.5 text-center text-slate-500 dark:text-slate-400">{item.number}</td>
+                        <td className="px-2 py-2.5 font-medium text-slate-900 dark:text-foreground">{item.description}</td>
+                        <td className="px-2 py-2.5 text-center text-slate-600 dark:text-slate-300">{item.quantity}</td>
+                        <td className="px-2 py-2.5 text-center text-slate-500 dark:text-slate-400">{item.volume}</td>
+                        <td className="px-2 py-2.5 text-right font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap tabular-nums">
+                          {formatCurrency(item.unitPrice, currency)}
+                        </td>
+                        <td className="px-2 py-2.5 text-right font-semibold text-slate-900 dark:text-foreground whitespace-nowrap tabular-nums">
+                          {formatCurrency(item.totalPrice, currency)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/30">
+                      <td colSpan={5} className="px-2 py-2 text-right text-xs font-bold text-slate-900 dark:text-foreground">
+                        Total
+                      </td>
+                      <td className="px-2 py-2 text-right text-xs font-bold text-slate-900 dark:text-foreground whitespace-nowrap tabular-nums">
+                        {formatCurrency(total, currency)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colSpan={6} className="px-2 pb-2 text-right">
+                        <span className="text-[11px] italic text-muted-foreground leading-tight block mt-0.5">{terbilangText}</span>
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
-              <div className="mt-2 text-right">
-                <span className="text-sm font-bold text-slate-900 dark:text-foreground">
-                  Total: {formatCurrency(proposal.totalEstimatedCost, proposal.currency)} (
-                  {proposal.totalEstimatedCostInWords})
-                </span>
-              </div>
+
             </section>
 
-            {/* Scope & Terms */}
+            {/* ── LINGKUP & SYARAT ── */}
             {(proposal.scopeOfWork.length > 0 || proposal.termsAndConditions.length > 0) && (
-              <section>
-                <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                  Lingkup Pekerjaan & Syarat & Kondisi
-                </h3>
-                <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-4 space-y-3 text-sm">
+              <section className="space-y-2">
+                <SectionDivider label="Lingkup Pekerjaan & Syarat & Kondisi" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                   {proposal.scopeOfWork.length > 0 && (
                     <div>
-                      <p className="font-medium text-slate-700 dark:text-slate-300">Lingkup Pekerjaan:</p>
-                      <ul className="list-disc list-inside mt-1 space-y-1">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Lingkup Pekerjaan
+                      </p>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-slate-600 dark:text-slate-400">
                         {proposal.scopeOfWork.map((s, i) => (
                           <li key={i}>{s}</li>
                         ))}
-                      </ul>
+                      </ol>
                     </div>
                   )}
                   {proposal.termsAndConditions.length > 0 && (
                     <div>
-                      <p className="font-medium text-slate-700 dark:text-slate-300">Syarat dan Kondisi:</p>
-                      <ul className="list-disc list-inside mt-1 space-y-1">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Syarat & Kondisi
+                      </p>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-slate-600 dark:text-slate-400">
                         {proposal.termsAndConditions.map((t, i) => (
                           <li key={i}>{t}</li>
                         ))}
-                      </ul>
+                      </ol>
                     </div>
                   )}
-                  {proposal.notes && (
-                    <p>
-                      <span className="font-medium text-slate-700 dark:text-slate-300">Notes:</span>{" "}
-                      {proposal.notes}
-                    </p>
-                  )}
                 </div>
+                {proposal.notes && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Catatan: </span>
+                    {proposal.notes}
+                  </p>
+                )}
               </section>
             )}
 
-            {/* Approval */}
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
-                Pengesahan Dokumen
-              </h3>
-              <div className="bg-slate-50 dark:bg-white/5 rounded-lg p-4 space-y-1 text-sm">
-                <p className="text-slate-600 dark:text-slate-400">
-                  {documentApproval.place}, {formatDate(documentApproval.date)}
-                </p>
-                <p className="font-semibold text-slate-900 dark:text-foreground">
-                  {documentApproval.signerName}
-                </p>
-                <p className="text-slate-600 dark:text-slate-400">{documentApproval.signerPosition}</p>
+            {/* ── PENGESAHAN DOKUMEN ── */}
+            <section className="space-y-1">
+              <SectionDivider label="Pengesahan Dokumen" />
+              <div className="pt-1">
+                <Row label="Tempat, Tanggal" value={`${documentApproval.place}, ${formatDate(documentApproval.date)}`} />
+                <Row label="Penandatangan" value={documentApproval.signerName} />
+                <Row label="Jabatan" value={documentApproval.signerPosition} />
                 {documentApproval.signatureUrl && (
-                  <img
-                    src={documentApproval.signatureUrl}
-                    alt="Signature"
-                    className="h-12 w-auto mt-2"
-                  />
+                  <div className="grid grid-cols-[180px_1fr] gap-2 py-1">
+                    <span className="text-slate-500 dark:text-slate-400 text-sm">Tanda Tangan</span>
+                    <img
+                      src={documentApproval.signatureUrl}
+                      alt="Signature"
+                      className="h-14 w-auto object-contain"
+                    />
+                  </div>
                 )}
               </div>
             </section>
+
           </div>
         </ScrollArea>
 
-        <DialogFooter className="p-6 pt-4 border-t">
+        {/* Footer */}
+        <DialogFooter className="px-6 py-4 border-t border-slate-100 dark:border-white/10 shrink-0">
           <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
             Close
           </Button>
@@ -244,7 +265,7 @@ export function ProposalPenawaranViewDialog({
             <Pencil className="h-4 w-4 mr-2" /> Edit
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </DialogContent >
+    </Dialog >
   );
 }

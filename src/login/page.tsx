@@ -1,11 +1,12 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Lock, User, ShieldCheck, Globe, ArrowRight } from "lucide-react";
+import { Lock, User, Globe, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 import type { ApiError } from "@/lib/api/client";
 
 export default function LoginPage() {
@@ -28,13 +29,13 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(username, password);
+      toast.success("Login successful", { description: "Welcome back to Coreapps" });
       navigate(returnTo);
     } catch (err) {
       const apiErr = err as ApiError;
-      setError(apiErr.message ?? "Sign in failed");
-      if (apiErr.code === "INVALID_CREDENTIALS") {
-        setError(apiErr.message ?? "Invalid credentials");
-      }
+      const errorMsg = apiErr.code === "INVALID_CREDENTIALS" ? "Invalid credentials" : (apiErr.message ?? "Sign in failed");
+      toast.error("Authentication Error", { description: errorMsg });
+      setError(errorMsg);
       if (Array.isArray(apiErr.errors)) {
         const map: Record<string, string> = {};
         for (const { field, message } of apiErr.errors) {
@@ -56,17 +57,14 @@ export default function LoginPage() {
       <div className="relative z-10 w-full max-w-[440px] px-6">
         {/* Branding */}
         <div className="flex flex-col items-center mb-10 text-center">
-          <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 mb-6 group hover:rotate-6 transition-transform">
-            <ShieldCheck className="h-8 w-8 text-primary-foreground" />
+          <div className="mb-6 group hover:scale-105 transition-transform">
+            <img src="/alugra_logo.png" alt="Coreapps Logo" className="h-[60px] w-auto drop-shadow-lg" />
           </div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-foreground tracking-tight mb-2">
-            IT Consultant{" "}
-            <span className="text-primary font-black uppercase italic ml-1 select-none">
-              Co.
-            </span>
+            Coreapps
           </h1>
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            Enterprise Resource Planning System • v4.2.0
+            Enterprise Resource Planning System
           </p>
         </div>
 

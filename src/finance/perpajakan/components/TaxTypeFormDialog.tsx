@@ -30,8 +30,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { taxTypeFormSchema, type TaxTypeFormValues } from "../schema";
-import { createTaxType, updateTaxType } from "@/api/tax-types";
+import { useCreateTaxType, useUpdateTaxType } from "@/hooks/useTaxTypes";
 import type { TaxType, ApplicableDocument } from "../types";
+import { toast } from "sonner";
 
 interface TaxTypeFormDialogProps {
   open: boolean;
@@ -53,6 +54,8 @@ export function TaxTypeFormDialog({
   onSuccess,
 }: TaxTypeFormDialogProps) {
   const isEdit = !!taxType;
+  const createMutation = useCreateTaxType();
+  const updateMutation = useUpdateTaxType();
 
   const form = useForm<TaxTypeFormValues>({
     resolver: zodResolver(taxTypeFormSchema),
@@ -97,7 +100,7 @@ export function TaxTypeFormDialog({
     }
   }, [taxType, open, form]);
 
-  const onSubmit = async (values: TaxTypeFormValues) => {
+  const onSubmit = (values: TaxTypeFormValues) => {
     const payload = {
       code: values.code,
       name: values.name,
@@ -110,12 +113,25 @@ export function TaxTypeFormDialog({
       isActive: values.isActive,
     };
 
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && taxType) {
-      await updateTaxType(taxType.id, payload);
+      updateMutation.mutate(
+        { id: taxType.id, input: payload },
+        {
+          onSuccess: handleSuccess,
+          onError: () => toast.error("Failed to update tax type"),
+        }
+      );
     } else {
-      await createTaxType(payload);
+      createMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: () => toast.error("Failed to create tax type"),
+      });
     }
-    onSuccess();
   };
 
   return (
@@ -307,8 +323,15 @@ export function TaxTypeFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

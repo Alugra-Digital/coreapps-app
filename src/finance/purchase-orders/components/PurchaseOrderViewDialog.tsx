@@ -97,7 +97,7 @@ export function PurchaseOrderViewDialog({
                 </p>
                 <p className="text-slate-600 dark:text-slate-400">Tel: {vendorInfo.phone}</p>
                 <p className="text-slate-600 dark:text-slate-400">
-                  PIC: {vendorInfo.pic.name} ({vendorInfo.pic.position}) - {vendorInfo.pic.contact}
+                  PIC: {vendorInfo.pic?.name ?? ""} ({vendorInfo.pic?.position ?? ""}) - {vendorInfo.pic?.contact ?? ""}
                 </p>
               </div>
             </section>

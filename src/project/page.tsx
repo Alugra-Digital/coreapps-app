@@ -1,26 +1,21 @@
 import { FolderKanban, Plus, FolderCheck, FolderOpen } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ProjectTable } from "./components/ProjectTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getProjects } from "@/api/projects";
-import type { Project } from "./types";
+import { useProjects } from "@/hooks/useProjects";
 
 export default function ProjectPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const loadProjects = async () => {
-    const data = await getProjects();
-    setProjects(data);
-  };
+  const { data: projects = [], refetch } = useProjects();
 
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const onProgressCount = projects.filter((p) => p.identity.status === "on_progress").length;
-  const completedCount = projects.filter((p) => p.identity.status === "completed").length;
+  const onProgressCount = projects.filter((p) =>
+    ["ON_PROGRESS", "on_progress"].includes(p.identity?.status ?? "")
+  ).length;
+  const completedCount = projects.filter((p) =>
+    ["COMPLETED", "completed"].includes(p.identity?.status ?? "")
+  ).length;
 
   return (
     <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
@@ -67,7 +62,7 @@ export default function ProjectPage() {
 
       <ProjectTable
         projects={projects}
-        onRefresh={loadProjects}
+        onRefresh={() => refetch()}
         onAddClick={() => setIsAddOpen(true)}
         isAddOpen={isAddOpen}
         onAddOpenChange={setIsAddOpen}

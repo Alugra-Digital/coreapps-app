@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -27,12 +27,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { userFormSchema, type UserFormValues } from "../schema";
-import { createUser, updateUser } from "@/api/users";
-import { getRoles } from "@/api/roles";
+import { useCreateUser, useUpdateUser } from "@/hooks/useUsers";
+import { useRoles } from "@/hooks/useRoles";
 import type { ApiError } from "@/lib/api/client";
 import { toast } from "sonner";
 import type { User } from "../types";
-import type { Role } from "@/access-control/roles/types";
 
 interface UserFormDialogProps {
   open: boolean;
@@ -48,7 +47,9 @@ export function UserFormDialog({
   onSuccess,
 }: UserFormDialogProps) {
   const isEdit = !!user;
-  const [roles, setRoles] = useState<Role[]>([]);
+  const createMutation = useCreateUser();
+  const updateMutation = useUpdateUser();
+  const { data: roles = [] } = useRoles();
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
@@ -61,10 +62,6 @@ export function UserFormDialog({
       isActive: true,
     },
   });
-
-  useEffect(() => {
-    getRoles().then(setRoles);
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -88,30 +85,8 @@ export function UserFormDialog({
     }
   }, [user, open, form, roles]);
 
-  const onSubmit = async (values: UserFormValues) => {
-    try {
-      if (isEdit && user) {
-        const payload: { username: string; email: string; fullName: string; roleId: string; isActive: boolean; password?: string } = {
-          username: values.username,
-          email: values.email,
-          fullName: values.fullName,
-          roleId: values.roleId,
-          isActive: values.isActive,
-        };
-        if (values.password?.trim()) payload.password = values.password;
-        await updateUser(user.id, payload);
-      } else {
-        await createUser({
-          username: values.username,
-          email: values.email,
-          fullName: values.fullName,
-          roleId: values.roleId,
-          password: values.password?.trim() || undefined,
-          isActive: values.isActive,
-        });
-      }
-      onSuccess();
-    } catch (err) {
+  const onSubmit = (values: UserFormValues) => {
+    const handleError = (err: unknown) => {
       const apiErr = err as ApiError;
       toast.error(apiErr.message ?? "An error occurred");
       if (Array.isArray(apiErr.errors)) {
@@ -119,6 +94,45 @@ export function UserFormDialog({
           form.setError(field as keyof UserFormValues, { message });
         }
       }
+    };
+
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
+    if (isEdit && user) {
+      const payload: {
+        username: string;
+        email: string;
+        fullName: string;
+        roleId: string;
+        isActive: boolean;
+        password?: string;
+      } = {
+        username: values.username,
+        email: values.email,
+        fullName: values.fullName,
+        roleId: values.roleId,
+        isActive: values.isActive,
+      };
+      if (values.password?.trim()) payload.password = values.password;
+      updateMutation.mutate(
+        { id: user.id, input: payload },
+        { onSuccess: handleSuccess, onError: handleError }
+      );
+    } else {
+      createMutation.mutate(
+        {
+          username: values.username,
+          email: values.email,
+          fullName: values.fullName,
+          roleId: values.roleId,
+          password: values.password?.trim() || undefined,
+          isActive: values.isActive,
+        },
+        { onSuccess: handleSuccess, onError: handleError }
+      );
     }
   };
 
@@ -244,8 +258,15 @@ export function UserFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

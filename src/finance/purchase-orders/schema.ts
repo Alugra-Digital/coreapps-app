@@ -1,11 +1,5 @@
 import { z } from "zod";
 
-const vendorPicSchema = z.object({
-  name: z.string().min(1, "PIC name is required"),
-  position: z.string().min(1, "Position is required"),
-  contact: z.string().optional(),
-});
-
 const lineItemSchema = z.object({
   number: z.number().min(1),
   itemDescription: z.string().min(1, "Item description is required"),
@@ -18,7 +12,11 @@ const lineItemSchema = z.object({
   priceAfterTax: z.number().min(0).optional(),
 });
 
+export const PO_STATUSES = ['DRAFT', 'APPROVED', 'SENT', 'RECEIVED'] as const;
+export type POStatus = (typeof PO_STATUSES)[number];
+
 export const purchaseOrderFormSchema = z.object({
+  status: z.enum(PO_STATUSES).optional(),
   companyInfo: z.object({
     letterhead: z.string().optional(),
     companyName: z.string().min(1, "Company name is required"),
@@ -31,12 +29,19 @@ export const purchaseOrderFormSchema = z.object({
     poNumber: z.string().min(1, "PO number is required"),
     docReference: z.string().optional(),
   }),
+  clientId: z.number().optional().nullable(),
   vendorInfo: z.object({
-    vendorName: z.string().min(1, "Vendor name is required"),
-    phone: z.string().min(1, "Vendor phone is required"),
-    pic: vendorPicSchema,
+    vendorName: z.string().optional(),
+    phone: z.string().optional(),
+    pic: z
+      .object({
+        name: z.string().optional(),
+        position: z.string().optional(),
+        contact: z.string().optional(),
+      })
+      .optional()
+      .default({ name: "", position: "", contact: "" }),
   }),
-  lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
   paymentProcedure: z.string().optional(),
   otherTerms: z.string().optional(),
   approval: z.object({
@@ -44,6 +49,10 @@ export const purchaseOrderFormSchema = z.object({
     name: z.string().min(1, "Approval name is required"),
     signatureUrl: z.string().url().optional().or(z.literal("")),
   }),
+  lineItems: z.array(lineItemSchema).min(1, "At least one line item is required"),
+}).refine((data) => data.clientId || (data.vendorInfo?.vendorName && data.vendorInfo?.phone), {
+  message: "Either select a Client or enter Vendor name and phone",
+  path: ["vendorInfo"],
 });
 
 export type PurchaseOrderFormValues = z.infer<typeof purchaseOrderFormSchema>;

@@ -11,18 +11,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { RevenueGrowthItem } from "@/api/finance";
 
-const financeData = [
-  { month: "Aug", value: 65000 },
-  { month: "Sep", value: 78000 },
-  { month: "Oct", value: 82000 },
-  { month: "Nov", value: 95000, active: true },
-  { month: "Dec", value: 88000 },
-  { month: "Jan", value: 92000 },
-  { month: "Feb", value: 98000 },
-];
+function formatIdr(value: number): string {
+  if (value >= 1e9) return `Rp ${(value / 1e9).toFixed(2)} B`;
+  if (value >= 1e6) return `Rp ${(value / 1e6).toFixed(2)} M`;
+  if (value >= 1e3) return `Rp ${(value / 1e3).toFixed(1)} rb`;
+  return `Rp ${value.toLocaleString("id-ID")}`;
+}
 
-export function RevenueGrowthChart({ className }: { className?: string }) {
+export function RevenueGrowthChart({
+  className,
+  data,
+}: {
+  className?: string;
+  data?: RevenueGrowthItem[] | null;
+}) {
+  const financeData = data && data.length > 0 ? data : [];
+  const hasData = financeData.length > 0;
+  const latestValue = hasData ? (financeData[financeData.length - 1]?.value ?? financeData[0]?.value ?? 0) : 0;
   return (
     <Card
       className={cn(
@@ -50,19 +57,21 @@ export function RevenueGrowthChart({ className }: { className?: string }) {
         <div className="flex flex-col gap-1 mb-6">
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-foreground">
-              Rp 1,52 M
+              {hasData ? formatIdr(latestValue) : "—"}
             </span>
-            <Badge
-              variant="outline"
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded-2xl border-green-600 text-green-600 bg-transparent hover:bg-transparent"
-            >
-              +12.5%
-              <span className="font-normal ml-1">vs last year</span>
-            </Badge>
+            {hasData && (
+              <Badge
+                variant="outline"
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-2xl border-green-600 text-green-600 bg-transparent hover:bg-transparent"
+              >
+                vs last year
+              </Badge>
+            )}
           </div>
         </div>
 
         <div className="h-[220px] w-full mt-4">
+          {hasData ? (
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={financeData}>
               <defs>
@@ -98,7 +107,7 @@ export function RevenueGrowthChart({ className }: { className?: string }) {
                     const data = payload[0].payload;
                     return (
                       <div className="bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow-xl border-none">
-                        {data?.month} : Rp {((payload[0].value ?? 0) * 15500).toLocaleString('id-ID')}
+                        {data?.month} : Rp {(Number(payload[0].value ?? 0) * 15500).toLocaleString('id-ID')}
                       </div>
                     );
                   }
@@ -116,6 +125,11 @@ export function RevenueGrowthChart({ className }: { className?: string }) {
               />
             </AreaChart>
           </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-400 dark:text-slate-500 text-sm">
+              No revenue data available
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import {
   User,
   Mail,
@@ -22,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { updateProfile } from "@/api/profile";
+import { toast } from "sonner";
 
 function getInitials(fullName?: string | null, username?: string): string {
   if (fullName?.trim()) {
@@ -39,11 +42,33 @@ function getInitials(fullName?: string | null, username?: string): string {
 }
 
 export default function ProfilePage() {
-  const { currentUser } = useAuth();
+  const { currentUser, refetch } = useAuth();
   const displayName = currentUser?.fullName ?? currentUser?.username ?? "—";
   const displayEmail = currentUser?.email ?? "—";
   const displayRole = currentUser?.role?.name ?? currentUser?.role?.code ?? "—";
   const initials = getInitials(currentUser?.fullName, currentUser?.username);
+  const [saving, setSaving] = useState(false);
+  const fullNameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
+  const bioRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleSave = async () => {
+    const fullName = fullNameRef.current?.value?.trim();
+    const email = emailRef.current?.value?.trim();
+    const phone = phoneRef.current?.value?.trim();
+    const bio = bioRef.current?.value?.trim();
+    setSaving(true);
+    try {
+      await updateProfile({ fullName: fullName ?? undefined, email: email ?? undefined, phone: phone ?? undefined, bio: bio ?? undefined });
+      await refetch();
+      toast.success("Profile updated successfully.");
+    } catch (e) {
+      toast.error(e && typeof e === "object" && "message" in e ? String((e as { message: string }).message) : "Failed to update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1200px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
@@ -95,8 +120,8 @@ export default function ProfilePage() {
             >
               Cancel
             </Button>
-            <Button className="h-9 gap-2 text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all">
-              Save Changes
+            <Button onClick={handleSave} disabled={saving} className="h-9 gap-2 text-xs font-bold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all">
+              {saving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </div>
@@ -118,6 +143,7 @@ export default function ProfilePage() {
                     Full Name
                   </label>
                   <Input
+                    ref={fullNameRef}
                     defaultValue={displayName}
                     className="h-10 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg"
                   />
@@ -128,6 +154,7 @@ export default function ProfilePage() {
                   </label>
                   <Input
                     defaultValue={displayRole}
+                    readOnly
                     className="h-10 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg"
                   />
                 </div>
@@ -136,6 +163,7 @@ export default function ProfilePage() {
                     Email Address
                   </label>
                   <Input
+                    ref={emailRef}
                     defaultValue={displayEmail !== "—" ? displayEmail : ""}
                     className="h-10 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg"
                   />
@@ -145,7 +173,8 @@ export default function ProfilePage() {
                     Phone Number
                   </label>
                   <Input
-                    defaultValue="+62 812-4421-XXXX"
+                    ref={phoneRef}
+                    defaultValue={currentUser?.phone ?? "+62 812-4421-XXXX"}
                     className="h-10 bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-lg"
                   />
                 </div>
@@ -156,8 +185,9 @@ export default function ProfilePage() {
                   Bio / Profile Description
                 </label>
                 <textarea
+                  ref={bioRef}
                   className="w-full min-h-[100px] p-3 text-sm bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all dark:text-foreground italic"
-                  defaultValue="Driving operational excellence at IT Consultant Co. Focused on enterprise growth and system efficiency."
+                  defaultValue={currentUser?.bio ?? "Driving operational excellence at IT Consultant Co. Focused on enterprise growth and system efficiency."}
                 />
               </div>
             </CardContent>
@@ -269,7 +299,15 @@ export default function ProfilePage() {
   );
 }
 
-function PreferenceItem({ icon, title, description, enabled, meta }: any) {
+interface PreferenceItemProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  enabled: boolean;
+  meta?: React.ReactNode;
+}
+
+function PreferenceItem({ icon, title, description, enabled, meta }: PreferenceItemProps) {
   return (
     <div className="flex items-center justify-between p-4 rounded-xl bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 transition-all hover:border-slate-300 dark:hover:border-white/10 group cursor-pointer">
       <div className="flex items-center gap-4">
@@ -308,7 +346,14 @@ function PreferenceItem({ icon, title, description, enabled, meta }: any) {
   );
 }
 
-function SessionItem({ device, browser, status, active }: any) {
+interface SessionItemProps {
+  device: string;
+  browser: string;
+  status: string;
+  active: boolean;
+}
+
+function SessionItem({ device, browser, status, active }: SessionItemProps) {
   return (
     <div className="flex items-start gap-4">
       <div

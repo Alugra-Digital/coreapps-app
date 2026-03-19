@@ -1,3 +1,4 @@
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   MoreVertical,
@@ -32,23 +33,42 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ProjectFormDialog } from "./ProjectFormDialog";
-import { ProjectViewDialog } from "./ProjectViewDialog";
 import { deleteProject } from "@/api/projects";
 import type { Project } from "../types";
 
 interface ProjectTableProps {
   projects: Project[];
   onRefresh: () => void;
-  onAddClick: () => void;
-  isAddOpen: boolean;
-  onAddOpenChange: (open: boolean) => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  PIPELINE: "Pipeline",
+  NEGOTIATION: "Negosiasi",
+  WON: "Won",
+  LOST: "Lost",
+  ON_PROGRESS: "On Progress",
   on_progress: "On Progress",
+  ON_HOLD: "On Hold",
+  READY_TO_CLOSE: "Ready to Close",
+  COMPLETED: "Completed",
   completed: "Completed",
+  CANCELLED: "Cancelled",
   cancelled: "Cancelled",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  PIPELINE: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500",
+  NEGOTIATION: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500",
+  WON: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500",
+  LOST: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500",
+  ON_PROGRESS: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500",
+  on_progress: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500",
+  ON_HOLD: "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-500",
+  READY_TO_CLOSE: "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500",
+  COMPLETED: "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400",
+  completed: "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500",
+  CANCELLED: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500",
+  cancelled: "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400",
 };
 
 function formatCurrency(value: number): string {
@@ -62,14 +82,10 @@ function formatCurrency(value: number): string {
 export function ProjectTable({
   projects,
   onRefresh,
-  onAddClick,
-  isAddOpen,
-  onAddOpenChange,
 }: ProjectTableProps) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [editProject, setEditProject] = useState<Project | null>(null);
-  const [viewProject, setViewProject] = useState<Project | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [deleteProjectName, setDeleteProjectName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -95,16 +111,6 @@ export function ProjectTable({
     }
   };
 
-  const handleAddSuccess = () => {
-    onAddOpenChange(false);
-    onRefresh();
-  };
-
-  const handleEditSuccess = () => {
-    setEditProject(null);
-    onRefresh();
-  };
-
   return (
     <>
       <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
@@ -128,13 +134,19 @@ export function ProjectTable({
               className="h-7 px-3 rounded-lg text-[10px] bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10"
             >
               <option value="all">All Status</option>
-              <option value="on_progress">On Progress</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="PIPELINE">Pipeline</option>
+              <option value="NEGOTIATION">Negosiasi</option>
+              <option value="WON">Won</option>
+              <option value="ON_PROGRESS">On Progress</option>
+              <option value="ON_HOLD">On Hold</option>
+              <option value="READY_TO_CLOSE">Ready to Close</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="LOST">Lost</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
             <Button
               className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
-              onClick={onAddClick}
+              onClick={() => navigate("/projects/create")}
             >
               Add Project
             </Button>
@@ -161,21 +173,31 @@ export function ProjectTable({
                   Status
                 </TableHead>
                 <TableHead className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                  Profit/Loss
+                  Price
                 </TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-xs text-slate-400">
+                    No projects found.
+                  </TableCell>
+                </TableRow>
+              )}
               {filtered.map((p) => (
                 <TableRow
                   key={p.id}
                   className="group/row hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors border-slate-100 dark:border-white/5"
                 >
                   <TableCell className="py-3">
-                    <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                      {p.identity.projectId}
-                    </span>
+                    <Link
+                      to={`/projects/${p.id}`}
+                      className="text-xs font-bold text-slate-900 dark:text-foreground hover:text-primary hover:underline"
+                    >
+                      {p.identity.projectId ?? p.id}
+                    </Link>
                   </TableCell>
                   <TableCell className="py-3 text-xs text-slate-600 dark:text-slate-400">
                     {p.identity.namaProject}
@@ -188,20 +210,13 @@ export function ProjectTable({
                   </TableCell>
                   <TableCell className="py-3">
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${p.identity.status === "completed"
-                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500"
-                          : p.identity.status === "on_progress"
-                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-500"
-                            : "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"
-                        }`}
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[p.identity.status] ?? "bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400"}`}
                     >
                       {STATUS_LABELS[p.identity.status] ?? p.identity.status}
                     </span>
                   </TableCell>
-                  <TableCell
-                    className={`py-3 text-xs font-medium ${p.finance.profitLoss >= 0 ? "text-emerald-600" : "text-red-600"}`}
-                  >
-                    {formatCurrency(p.finance.profitLoss)}
+                  <TableCell className="py-3 text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {formatCurrency(p.identity.price ?? p.finance.contractValue ?? 0)}
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <DropdownMenu>
@@ -215,10 +230,10 @@ export function ProjectTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setViewProject(p)}>
+                        <DropdownMenuItem onClick={() => navigate(`/projects/${p.id}`)}>
                           <Eye className="h-3.5 w-3.5 mr-2" /> View
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setEditProject(p)}>
+                        <DropdownMenuItem onClick={() => navigate(`/projects/${p.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -239,30 +254,6 @@ export function ProjectTable({
           </Table>
         </CardContent>
       </Card>
-
-      <ProjectFormDialog
-        open={isAddOpen}
-        onOpenChange={onAddOpenChange}
-        onSuccess={handleAddSuccess}
-      />
-
-      <ProjectFormDialog
-        open={!!editProject}
-        onOpenChange={(open) => !open && setEditProject(null)}
-        project={editProject ?? undefined}
-        onSuccess={handleEditSuccess}
-      />
-
-      <ProjectViewDialog
-        project={viewProject}
-        onOpenChange={(open) => !open && setViewProject(null)}
-        onEdit={() => {
-          if (viewProject) {
-            setViewProject(null);
-            setEditProject(viewProject);
-          }
-        }}
-      />
 
       <AlertDialog
         open={!!deleteProjectId}

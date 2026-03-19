@@ -27,7 +27,7 @@ export const quotationFormSchema = z.object({
   paymentTerms: z.string().optional(),
   validityPeriod: z.string().optional(),
   termsConditions: z.string().optional(),
-  status: z.enum(["draft", "sent", "accepted", "rejected", "expired"]),
+  status: z.enum(["draft", "sent", "accepted", "rejected", "expired", "negotiation"]),
 });
 
 export type QuotationFormValues = z.infer<typeof quotationFormSchema>;

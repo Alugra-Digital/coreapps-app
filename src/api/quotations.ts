@@ -10,13 +10,15 @@ import type {
 } from "@/finance/quotations/types";
 import { api } from "@/lib/api/client";
 
+const VENDOR_QUOTATIONS_BASE = "/api/finance/vendor-quotations";
+
 export async function getQuotations(): Promise<Quotation[]> {
-  return api.get<Quotation[]>("/api/finance/quotations");
+  return api.get<Quotation[]>(VENDOR_QUOTATIONS_BASE);
 }
 
 export async function getQuotationById(id: string): Promise<Quotation | null> {
   try {
-    return await api.get<Quotation>(`/api/finance/quotations/${id}`);
+    return await api.get<Quotation>(`${VENDOR_QUOTATIONS_BASE}/${id}`);
   } catch {
     return null;
   }
@@ -25,7 +27,7 @@ export async function getQuotationById(id: string): Promise<Quotation | null> {
 export async function createQuotation(
   input: QuotationCreateInput
 ): Promise<Quotation> {
-  return api.post<Quotation>("/api/finance/quotations", input);
+  return api.post<Quotation>(VENDOR_QUOTATIONS_BASE, input);
 }
 
 export async function updateQuotation(
@@ -33,7 +35,7 @@ export async function updateQuotation(
   input: QuotationUpdateInput
 ): Promise<Quotation | null> {
   try {
-    return await api.put<Quotation>(`/api/finance/quotations/${id}`, input);
+    return await api.put<Quotation>(`${VENDOR_QUOTATIONS_BASE}/${id}`, input);
   } catch {
     return null;
   }
@@ -41,7 +43,7 @@ export async function updateQuotation(
 
 export async function deleteQuotation(id: string): Promise<boolean> {
   try {
-    await api.delete(`/api/finance/quotations/${id}`);
+    await api.delete(`${VENDOR_QUOTATIONS_BASE}/${id}`);
     return true;
   } catch {
     return false;

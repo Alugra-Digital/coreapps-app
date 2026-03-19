@@ -14,12 +14,32 @@ import { SalesMetricCard } from "./components/SalesMetricCard";
 import { SalesCharts } from "./components/SalesCharts";
 import { SalesPipelineTable } from "./components/SalesPipelineTable";
 import {
-  performanceData,
-  dealsByCategory,
-  recentDeals,
+  performanceData as defaultPerformance,
+  dealsByCategory as defaultDealsByCategory,
+  recentDeals as defaultRecentDeals,
 } from "./components/data";
+import { useSales } from "@/hooks/useSales";
+import { formatIdr } from "@/lib/currency";
 
 export default function SalesPage() {
+  const { data: salesData } = useSales();
+
+  const performanceData = salesData?.performanceData?.length
+    ? salesData.performanceData.map((p) => ({ name: p.month ?? (p as { name?: string }).name ?? "", revenue: p.revenue, deals: (p as { deals?: number }).deals }))
+    : defaultPerformance;
+  const dealsByCategory = salesData?.dealsByCategory?.length ? salesData.dealsByCategory : defaultDealsByCategory;
+  const recentDeals = salesData?.recentDeals?.length
+    ? salesData.recentDeals.map((d) => ({
+        id: d.id,
+        client: d.client,
+        avatar: d.client?.slice(0, 2).toUpperCase() ?? "—",
+        owner: "—",
+        value: formatIdr(d.amount),
+        status: d.stage ?? "—",
+        probability: d.probability ?? 0,
+        date: "—",
+      }))
+    : defaultRecentDeals;
   return (
     <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
       {/* Sales Header */}
@@ -55,28 +75,28 @@ export default function SalesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <SalesMetricCard
           title="Total Revenue"
-          value="$742,500.00"
+          value={salesData?.totalRevenue != null ? formatIdr(salesData.totalRevenue) : "Rp 742,5 jt"}
           change="+12.4%"
           trend="up"
           icon={<DollarSign className="h-5 w-5" />}
         />
         <SalesMetricCard
           title="Quarterly Target"
-          value="$1.2M"
-          change="62% Met"
-          progress={62}
+          value={salesData?.quarterlyTarget != null ? formatIdr(salesData.quarterlyTarget, true) : "Rp 1,2 M"}
+          change={`${salesData?.targetPercent ?? 62}% Met`}
+          progress={salesData?.targetPercent ?? 62}
           icon={<Target className="h-5 w-5" />}
         />
         <SalesMetricCard
           title="Avg. Deal Size"
-          value="$8,450.00"
+          value={salesData?.avgDealSize != null ? formatIdr(salesData.avgDealSize) : "Rp 8,45 jt"}
           change="+3.1%"
           trend="up"
           icon={<Briefcase className="h-5 w-5" />}
         />
         <SalesMetricCard
           title="Conversion"
-          value="24.8%"
+          value={`${salesData?.conversion ?? 24.8}%`}
           change="-1.2%"
           trend="down"
           icon={<TrendingUp className="h-5 w-5" />}

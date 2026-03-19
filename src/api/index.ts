@@ -17,4 +17,3 @@ export * from "./inventory";
 export * from "./positions";
 export * from "./roles";
 export * from "./users";
-export * from "./vendors";

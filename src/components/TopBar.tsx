@@ -30,7 +30,7 @@ function getInitials(fullName?: string | null, username?: string): string {
   return "—";
 }
 
-interface TopBarProps extends React.HTMLAttributes<HTMLDivElement> {}
+type TopBarProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function TopBar({ className }: TopBarProps) {
   const { currentUser } = useAuth();

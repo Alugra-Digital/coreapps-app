@@ -6,33 +6,26 @@ import {
   Warehouse,
   DollarSign,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { InventoryStockTable } from "./components/InventoryStockTable";
 import { AppointmentCard } from "./components/AppointmentCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getInventoryItems } from "@/api/inventory";
+import { useInventoryItems } from "@/hooks/useInventory";
 import type { InventoryItem } from "./types";
 
 function formatTotalValue(items: InventoryItem[]): string {
   const total = items.reduce((sum, i) => sum + i.quantity * i.price, 0);
-  if (total >= 1_000_000) return `$${(total / 1_000_000).toFixed(1)}M`;
-  if (total >= 1_000) return `$${(total / 1_000).toFixed(1)}K`;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(total);
+  if (total >= 1_000_000_000) return `Rp ${(total / 1_000_000_000).toFixed(1)} M`;
+  if (total >= 1_000_000) return `Rp ${(total / 1_000_000).toFixed(1)} jt`;
+  if (total >= 1_000) return `Rp ${(total / 1_000).toFixed(1)} rb`;
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(total);
 }
 
 export default function InventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const loadItems = async () => {
-    const data = await getInventoryItems();
-    setItems(data);
-  };
-
-  useEffect(() => {
-    loadItems();
-  }, []);
+  const { data: items = [], refetch } = useInventoryItems();
 
   const totalUnits = items.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -94,7 +87,7 @@ export default function InventoryPage() {
         <div className="xl:col-span-8">
           <InventoryStockTable
             items={items}
-            onRefresh={loadItems}
+            onRefresh={() => refetch()}
             onAddClick={() => setIsAddOpen(true)}
             isAddOpen={isAddOpen}
             onAddOpenChange={setIsAddOpen}

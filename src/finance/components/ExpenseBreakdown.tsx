@@ -9,16 +9,17 @@ import { PieChart as PieChartIcon, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { ExpenseBreakdownItem } from "@/api/finance";
 
-const expenseData = [
-  { name: "Operational", value: 45, color: "#3b82f6" },
-  { name: "Infrastructure", value: 25, color: "#10b981" },
-  { name: "Marketing", value: 15, color: "#ef4444" },
-  { name: "Payroll", value: 10, color: "#f59e0b" },
-  { name: "Other", value: 5, color: "#94a3b8" },
-];
-
-export function ExpenseBreakdown({ className }: { className?: string }) {
+export function ExpenseBreakdown({
+  className,
+  data,
+}: {
+  className?: string;
+  data?: ExpenseBreakdownItem[] | null;
+}) {
+  const expenseData = data && data.length > 0 ? data : [];
+  const hasData = expenseData.length > 0;
   return (
     <Card
       className={cn(
@@ -37,6 +38,7 @@ export function ExpenseBreakdown({ className }: { className?: string }) {
 
       <CardContent className="p-6 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col gap-6 flex-1">
         <div className="h-[200px] w-full relative">
+          {hasData ? (
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -70,14 +72,21 @@ export function ExpenseBreakdown({ className }: { className?: string }) {
               />
             </PieChart>
           </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-slate-400 dark:text-slate-500 text-sm">
+              No expense data available
+            </div>
+          )}
+          {hasData && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-2xl font-bold text-slate-900 dark:text-foreground">
-              Rp 1,93 M
+              100%
             </span>
             <span className="text-[10px] text-slate-400 dark:text-muted-foreground uppercase font-medium">
-              Total Spent
+              Breakdown
             </span>
           </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-2">

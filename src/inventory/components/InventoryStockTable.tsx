@@ -6,6 +6,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,36 +32,29 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { InventoryItemFormDialog } from "./InventoryItemFormDialog";
 import { deleteInventoryItem } from "@/api/inventory";
 import type { InventoryItem } from "../types";
 
 interface InventoryStockTableProps {
   items: InventoryItem[];
   onRefresh: () => void;
-  onAddClick: () => void;
-  isAddOpen: boolean;
-  onAddOpenChange: (open: boolean) => void;
 }
 
 function formatPrice(price: number): string {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("id-ID", {
     style: "currency",
-    currency: "USD",
+    currency: "IDR",
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   }).format(price);
 }
 
 export function InventoryStockTable({
   items,
   onRefresh,
-  onAddClick,
-  isAddOpen,
-  onAddOpenChange,
 }: InventoryStockTableProps) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [deleteItemName, setDeleteItemName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -83,16 +77,6 @@ export function InventoryStockTable({
     }
   };
 
-  const handleAddSuccess = () => {
-    onAddOpenChange(false);
-    onRefresh();
-  };
-
-  const handleEditSuccess = () => {
-    setEditItem(null);
-    onRefresh();
-  };
-
   return (
     <>
       <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
@@ -112,7 +96,7 @@ export function InventoryStockTable({
             </div>
             <Button
               className="h-7 gap-2 rounded-lg text-[10px] font-semibold bg-primary text-primary-foreground hover:opacity-90"
-              onClick={onAddClick}
+              onClick={() => navigate("/inventory/create")}
             >
               Add Asset
             </Button>
@@ -139,6 +123,13 @@ export function InventoryStockTable({
               </TableRow>
             </TableHeader>
             <TableBody>
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-xs text-slate-400">
+                    No assets found.
+                  </TableCell>
+                </TableRow>
+              )}
               {filtered.map((item) => (
                 <TableRow
                   key={item.id}
@@ -170,7 +161,7 @@ export function InventoryStockTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditItem(item)}>
+                        <DropdownMenuItem onClick={() => navigate(`/inventory/${item.id}/edit`)}>
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -191,19 +182,6 @@ export function InventoryStockTable({
           </Table>
         </CardContent>
       </Card>
-
-      <InventoryItemFormDialog
-        open={isAddOpen}
-        onOpenChange={onAddOpenChange}
-        onSuccess={handleAddSuccess}
-      />
-
-      <InventoryItemFormDialog
-        open={!!editItem}
-        onOpenChange={(open) => !open && setEditItem(null)}
-        item={editItem ?? undefined}
-        onSuccess={handleEditSuccess}
-      />
 
       <AlertDialog
         open={!!deleteItemId}

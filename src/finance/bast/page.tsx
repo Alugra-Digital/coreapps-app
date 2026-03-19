@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FileText,
   Plus,
@@ -8,170 +9,15 @@ import {
   ShieldCheck,
   TimerReset,
 } from "lucide-react";
-import { useState } from "react";
 import { BASTTable } from "./components/BASTTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { BAST } from "./types";
-
-const DUMMY_BASTS: BAST[] = [
-  {
-    id: "bast-001",
-    coverInfo: {
-      jobOffer: "Jasa Integrasi Sistem ERP Gudang",
-      companyName: "PT Cakra Niaga Digital",
-      bastMonth: "2026-02",
-      address: "Jl. Gatot Subroto No. 17, Jakarta Selatan",
-      phone: "+62 21 5550 2001",
-    },
-    documentInfo: {
-      bastNumber: "BAST/FIN/II/2026/001",
-      bastDate: "2026-02-05",
-      relatedPoOrInvoice: "PO-2026-0142",
-    },
-    deliveringParty: {
-      name: "Dimas Pratama",
-      position: "Project Manager",
-      company: "PT Delta Karya Solusi",
-    },
-    receivingParty: {
-      name: "Arini Mahendra",
-      position: "Head of Finance",
-      company: "PT Cakra Niaga Digital",
-    },
-  },
-  {
-    id: "bast-002",
-    coverInfo: {
-      jobOffer: "Pengadaan Perangkat Kasir Cabang Barat",
-      companyName: "PT Bintang Ritel Nusantara",
-      bastMonth: "2026-02",
-      address: "Jl. Diponegoro No. 95, Bandung",
-      phone: "+62 22 8891 1003",
-    },
-    documentInfo: {
-      bastNumber: "BAST/FIN/II/2026/002",
-      bastDate: "2026-02-11",
-      relatedPoOrInvoice: "INV-2026-0901",
-    },
-    deliveringParty: {
-      name: "Raka Adinata",
-      position: "Delivery Lead",
-      company: "PT Delta Karya Solusi",
-    },
-    receivingParty: {
-      name: "Sinta Larasati",
-      position: "Procurement Supervisor",
-      company: "PT Bintang Ritel Nusantara",
-    },
-  },
-  {
-    id: "bast-003",
-    coverInfo: {
-      jobOffer: "Implementasi Workflow Approval Pembelian",
-      companyName: "PT Samudra Ekspres Logistik",
-      bastMonth: "2026-01",
-      address: "Jl. Ahmad Yani No. 21, Surabaya",
-      phone: "+62 31 7012 4430",
-    },
-    documentInfo: {
-      bastNumber: "BAST/FIN/I/2026/019",
-      bastDate: "2026-01-26",
-      relatedPoOrInvoice: "PO-2026-0037",
-    },
-    deliveringParty: {
-      name: "Aditiya Wibowo",
-      position: "ERP Consultant",
-      company: "PT Delta Karya Solusi",
-    },
-    receivingParty: {
-      name: "Nanda Kusuma",
-      position: "Finance Controller",
-      company: "PT Samudra Ekspres Logistik",
-    },
-  },
-  {
-    id: "bast-004",
-    coverInfo: {
-      jobOffer: "Maintenance Modul Akuntansi Kuartal 1",
-      companyName: "PT Astra Prima Textile",
-      bastMonth: "2026-01",
-      address: "Jl. Raya Cibitung KM 11, Bekasi",
-      phone: "+62 21 8392 4418",
-    },
-    documentInfo: {
-      bastNumber: "BAST/FIN/I/2026/021",
-      bastDate: "2026-01-31",
-      relatedPoOrInvoice: "",
-    },
-    deliveringParty: {
-      name: "Farel Nugroho",
-      position: "Technical Support Lead",
-      company: "PT Delta Karya Solusi",
-    },
-    receivingParty: {
-      name: "Maya Puspita",
-      position: "Accounting Manager",
-      company: "PT Astra Prima Textile",
-    },
-  },
-  {
-    id: "bast-005",
-    coverInfo: {
-      jobOffer: "UAT dan Go-Live Modul Perpajakan",
-      companyName: "PT Pilar Mandiri Energi",
-      bastMonth: "2025-12",
-      address: "Jl. KH Wahid Hasyim No. 34, Semarang",
-      phone: "+62 24 6670 8212",
-    },
-    documentInfo: {
-      bastNumber: "BAST/FIN/XII/2025/144",
-      bastDate: "2025-12-22",
-      relatedPoOrInvoice: "INV-2025-2219",
-    },
-    deliveringParty: {
-      name: "Yasmin Maharani",
-      position: "Implementation Specialist",
-      company: "PT Delta Karya Solusi",
-    },
-    receivingParty: {
-      name: "Gilang Prakoso",
-      position: "Finance Operation Lead",
-      company: "PT Pilar Mandiri Energi",
-    },
-  },
-  {
-    id: "bast-006",
-    coverInfo: {
-      jobOffer: "Upgrade Server Dokumen Finance",
-      companyName: "PT Tirta Data Persada",
-      bastMonth: "2025-12",
-      address: "Jl. Melawai Raya No. 8, Jakarta Selatan",
-      phone: "+62 21 7200 6659",
-    },
-    documentInfo: {
-      bastNumber: "BAST/FIN/XII/2025/151",
-      bastDate: "2025-12-28",
-      relatedPoOrInvoice: "PO-2025-1983",
-    },
-    deliveringParty: {
-      name: "Dion Ramadhan",
-      position: "Infrastructure Engineer",
-      company: "PT Delta Karya Solusi",
-    },
-    receivingParty: {
-      name: "Rani Herawati",
-      position: "Head of IT Governance",
-      company: "PT Tirta Data Persada",
-    },
-  },
-];
+import { useBasts } from "@/hooks/useBast";
 
 export default function BASTPage() {
-  const [basts] = useState<BAST[]>(DUMMY_BASTS);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const loadBasts = () => {};
+  const { data: basts = [], refetch } = useBasts();
 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -292,7 +138,7 @@ export default function BASTPage() {
                   Layout Reference
                 </span>
                 <span className="inline-flex items-center whitespace-nowrap text-[10px] leading-none font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                  Dummy Dataset
+                  Live Data
                 </span>
               </div>
             </div>
@@ -380,7 +226,7 @@ export default function BASTPage() {
 
       <BASTTable
         basts={basts}
-        onRefresh={loadBasts}
+        onRefresh={() => refetch()}
         onAddClick={() => setIsAddOpen(true)}
         isAddOpen={isAddOpen}
         onAddOpenChange={setIsAddOpen}

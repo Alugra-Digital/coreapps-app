@@ -17,73 +17,41 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { AccountBalance } from "@/api/finance";
 
-const accountsData = [
-  {
-    id: 1,
-    name: "Main Operations",
-    number: "Bank Central • 1290",
-    balance: "Rp 5,31 M",
-    icon: <Landmark className="h-4 w-4 text-emerald-500" />,
-  },
-  {
-    id: 2,
-    name: "Payroll Savings",
-    number: "Federal Reserve • 8820",
-    balance: "Rp 1,93 M",
-    icon: <PiggyBank className="h-4 w-4 text-blue-500" />,
-  },
-  {
-    id: 3,
-    name: "Petty Cash",
-    number: "On-Site Vault",
-    balance: "Rp 18,6 jt",
-    icon: <Wallet className="h-4 w-4 text-amber-500" />,
-  },
-  {
-    id: 4,
-    name: "Client Escrow",
-    number: "Trust Bank • 3341",
-    balance: "Rp 1,38 M",
-    icon: <ShieldCheck className="h-4 w-4 text-indigo-500" />,
-  },
-  {
-    id: 5,
-    name: "Investment Portfolio",
-    number: "Merrill Lynch • 0092",
-    balance: "Rp 19,2 M",
-    icon: <Briefcase className="h-4 w-4 text-slate-500" />,
-  },
-];
+const iconMap: Record<number, React.ReactNode> = {
+  1: <Landmark className="h-4 w-4 text-emerald-500" />,
+  2: <PiggyBank className="h-4 w-4 text-blue-500" />,
+  3: <Wallet className="h-4 w-4 text-amber-500" />,
+  4: <ShieldCheck className="h-4 w-4 text-indigo-500" />,
+  5: <Briefcase className="h-4 w-4 text-slate-500" />,
+};
 
-export function AccountBalances({ className }: { className?: string }) {
+export function AccountBalances({
+  className,
+  data,
+}: {
+  className?: string;
+  data?: AccountBalance[] | null;
+}) {
+  const accountsData = useMemo(() => (data && data.length > 0 ? data : []), [data]);
+  const hasData = accountsData.length > 0;
   const [sortMode, setSortMode] = useState<"default" | "highest" | "lowest">(
     "default",
   );
-  const [visibleCount, setVisibleCount] = useState<number>(accountsData.length);
+  const [visibleCount, setVisibleCount] = useState<number>(accountsData.length || 1);
 
-  const parseRupiahText = (value: string) => {
-    const normalized = value.toLowerCase().replace("rp", "").trim();
-    const amount = Number.parseFloat(normalized.replace(",", "."));
-    if (Number.isNaN(amount)) return 0;
-    if (normalized.endsWith("m")) return amount * 1_000_000_000;
-    if (normalized.endsWith("jt")) return amount * 1_000_000;
-    return amount;
-  };
+  const parseBalance = (acc: AccountBalance) => acc.balance;
 
   const displayedAccounts = useMemo(() => {
     const accounts = [...accountsData];
     if (sortMode === "highest") {
-      accounts.sort(
-        (a, b) => parseRupiahText(b.balance) - parseRupiahText(a.balance),
-      );
+      accounts.sort((a, b) => parseBalance(b) - parseBalance(a));
     } else if (sortMode === "lowest") {
-      accounts.sort(
-        (a, b) => parseRupiahText(a.balance) - parseRupiahText(b.balance),
-      );
+      accounts.sort((a, b) => parseBalance(a) - parseBalance(b));
     }
     return accounts.slice(0, visibleCount);
-  }, [sortMode, visibleCount]);
+  }, [sortMode, visibleCount, accountsData]);
 
   const handleManageAllAccounts = () => {
     setSortMode("default");
@@ -161,13 +129,13 @@ export function AccountBalances({ className }: { className?: string }) {
 
       <CardContent className="p-6 bg-white dark:bg-background rounded-sm overflow-hidden border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col gap-6 flex-1">
         <div className="flex flex-col gap-4 overflow-y-auto pr-2 no-scrollbar">
-          {displayedAccounts.map((account) => (
+          {hasData ? displayedAccounts.map((account) => (
             <div
               key={account.id}
               className="flex gap-4 group/item cursor-pointer"
             >
               <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 group-hover/item:bg-white dark:group-hover/item:bg-white/10 group-hover/item:shadow-sm transition-all">
-                {account.icon}
+                {iconMap[account.id] ?? <Wallet className="h-4 w-4 text-slate-500" />}
               </div>
               <div className="mt-1 flex flex-col gap-0.5 flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
@@ -181,11 +149,15 @@ export function AccountBalances({ className }: { className?: string }) {
               </div>
               <div className="mt-1 text-right">
                 <span className="text-xs font-bold text-slate-900 dark:text-foreground">
-                  {account.balance}
+                  {account.formattedBalance}
                 </span>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-sm">
+              No account balances available
+            </div>
+          )}
         </div>
 
         <Button

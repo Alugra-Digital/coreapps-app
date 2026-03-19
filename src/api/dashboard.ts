@@ -92,6 +92,29 @@ export async function getDashboardData(): Promise<DashboardSummary> {
     };
   }
 
+  return aggregateDashboardFromRawData({
+    projects,
+    invoices,
+    purchaseOrders,
+    proposals,
+    basts,
+    employees,
+    taxTypes,
+  });
+}
+
+/** Aggregation logic for dashboard fallback. Exported for useDashboard hook cache population. */
+export function aggregateDashboardFromRawData(data: {
+  projects: Awaited<ReturnType<typeof getProjects>>;
+  invoices: Awaited<ReturnType<typeof getInvoices>>;
+  purchaseOrders: Awaited<ReturnType<typeof getPurchaseOrders>>;
+  proposals: Awaited<ReturnType<typeof getProposals>>;
+  basts: Awaited<ReturnType<typeof getBasts>>;
+  employees: Awaited<ReturnType<typeof getEmployees>>;
+  taxTypes: Awaited<ReturnType<typeof getTaxTypes>>;
+}): DashboardSummary {
+  const { projects, invoices, purchaseOrders, proposals, basts, employees, taxTypes } = data;
+
   const projectCounts = {
     total: projects.length,
     onProgress: projects.filter((p) => p?.identity?.status === "on_progress").length,

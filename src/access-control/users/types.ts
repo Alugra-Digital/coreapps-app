@@ -6,6 +6,8 @@ export interface User {
   fullName: string | null;
   roleId: string | null;
   isActive: boolean;
+  phone?: string | null;
+  bio?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

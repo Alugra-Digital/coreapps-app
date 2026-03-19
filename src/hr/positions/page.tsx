@@ -1,42 +1,32 @@
+import { useNavigate } from "react-router-dom";
 import { Briefcase, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
 import { PositionTable } from "./components/PositionTable";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { getPositions } from "@/api/positions";
-import type { Position } from "./types";
+import { Card } from "@/components/ui/card";
+import { usePositions } from "@/hooks/usePositions";
 
 export default function PositionsPage() {
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [isAddOpen, setIsAddOpen] = useState(false);
-
-  const loadPositions = async () => {
-    const data = await getPositions();
-    setPositions(data);
-  };
-
-  useEffect(() => {
-    loadPositions();
-  }, []);
+  const navigate = useNavigate();
+  const { data: positions = [], refetch } = usePositions();
 
   const activeCount = positions.filter((p) => p.isActive).length;
 
   return (
-    <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
+    <div className="flex flex-col gap-8 p-8 max-w-[1600px] mx-auto bg-[#0A0A0B] min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2 text-slate-900 dark:text-foreground">
+          <h1 className="text-4xl font-extrabold tracking-tight text-[#F0F0F0] mb-2">
             Positions
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Manage job positions (jabatan) used for employee assignments.
+          <p className="text-[#6B6B75] text-sm font-medium">
+            Define and manage the organizational structure and job roles.
           </p>
         </div>
         <Button
-          className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all"
-          onClick={() => setIsAddOpen(true)}
+          className="bg-[#F5A623] hover:bg-[#D98E1C] text-black font-bold h-12 px-6 rounded-xl shadow-lg shadow-[#F5A623]/10 transition-all active:scale-95"
+          onClick={() => navigate("/hr/positions/create")}
         >
-          <Plus className="h-4 w-4" /> Add Position
+          <Plus className="h-5 w-5 mr-2" /> Add Position
         </Button>
       </div>
 
@@ -46,7 +36,6 @@ export default function PositionsPage() {
           value={String(positions.length)}
           description="All job positions"
           icon={<Briefcase className="h-4 w-4" />}
-          color="#3b82f6"
         />
         <PositionStatCard
           title="Active"
@@ -59,10 +48,8 @@ export default function PositionsPage() {
 
       <PositionTable
         positions={positions}
-        onRefresh={loadPositions}
-        onAddClick={() => setIsAddOpen(true)}
-        isAddOpen={isAddOpen}
-        onAddOpenChange={setIsAddOpen}
+        onRefresh={() => refetch()}
+        onAddClick={() => navigate("/hr/positions/create")}
       />
     </div>
   );
@@ -73,37 +60,32 @@ function PositionStatCard({
   value,
   description,
   icon,
-  color,
 }: {
   title: string;
   value: string;
   description: string;
   icon: React.ReactNode;
-  color: string;
 }) {
   return (
-    <Card className="shadow-sm border-none bg-slate-50/80 dark:bg-card/80 p-3 rounded-sm group hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-center mb-2 px-1">
-        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">
-          {title}
-        </span>
+    <Card className="bg-[#111113] border-[#1E1E22] p-6 rounded-2xl group hover:border-[#F5A623]/30 transition-all">
+      <div className="flex justify-between items-start mb-4">
+        <div className="space-y-1">
+          <span className="text-[10px] font-bold text-[#6B6B75] uppercase tracking-[0.2em] leading-none">
+            {title}
+          </span>
+          <div className="text-3xl font-bold text-[#F0F0F0] tracking-tight">
+            {value}
+          </div>
+        </div>
         <div
-          className="h-8 w-8 rounded-lg flex items-center justify-center shadow-sm"
-          style={{ backgroundColor: `${color}15`, color: color }}
+          className="h-10 w-10 rounded-xl flex items-center justify-center bg-[#0A0A0B] border border-[#1E1E22] text-[#F5A623] shadow-inner"
         >
           {icon}
         </div>
       </div>
-      <CardContent className="p-4 bg-white dark:bg-background rounded-sm border border-slate-100 dark:border-white/5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-col gap-1">
-          <div className="text-2xl font-bold text-slate-900 dark:text-foreground leading-none">
-            {value}
-          </div>
-          <div className="text-[10px] text-slate-400 leading-tight">
-            {description}
-          </div>
-        </div>
-      </CardContent>
+      <div className="text-[10px] text-[#6B6B75] font-medium tracking-wide">
+        {description}
+      </div>
     </Card>
   );
 }

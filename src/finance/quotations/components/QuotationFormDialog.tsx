@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
@@ -27,12 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { quotationFormSchema, type QuotationFormValues } from "../schema";
-import { createQuotation, updateQuotation } from "@/api/quotations";
-import { getClients } from "@/api/clients";
-import { getProjects } from "@/api/projects";
+import { useCreateQuotation, useUpdateQuotation } from "@/hooks/useQuotations";
+import { useClients } from "@/hooks/useClients";
+import { useProjects } from "@/hooks/useProjects";
+import { toast } from "sonner";
 import type { Quotation } from "../types";
 
 const MONTHS = [
@@ -68,8 +71,15 @@ export function QuotationFormDialog({
   onSuccess,
 }: QuotationFormDialogProps) {
   const isEdit = !!quotation;
-  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
-  const [projects, setProjects] = useState<{ id: string; namaProject: string }[]>([]);
+  const createMutation = useCreateQuotation();
+  const updateMutation = useUpdateQuotation();
+  const { data: clientsData = [] } = useClients();
+  const { data: projectsData = [] } = useProjects();
+  const clients = clientsData.map((c) => ({ id: c.id, name: c.name }));
+  const projects = projectsData.map((p) => ({
+    id: p.id,
+    namaProject: p.identity?.namaProject ?? "",
+  }));
 
   const form = useForm<QuotationFormValues>({
     resolver: zodResolver(quotationFormSchema),
@@ -136,13 +146,6 @@ export function QuotationFormDialog({
   };
 
   useEffect(() => {
-    if (open) {
-      getClients().then((c) => setClients(c.map((x) => ({ id: x.id, name: x.name }))));
-      getProjects().then((p) => setProjects(p.map((x) => ({ id: x.id, namaProject: x.identity.namaProject }))));
-    }
-  }, [open]);
-
-  useEffect(() => {
     if (quotation) {
       form.reset({
         quotationNumber: quotation.quotationNumber,
@@ -188,7 +191,7 @@ export function QuotationFormDialog({
     }
   }, [quotation, open, form]);
 
-  const onSubmit = async (values: QuotationFormValues) => {
+  const onSubmit = (values: QuotationFormValues) => {
     const payload = {
       quotationNumber: values.quotationNumber,
       quotationDate: values.quotationDate,
@@ -210,12 +213,25 @@ export function QuotationFormDialog({
       status: values.status,
     };
 
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && quotation) {
-      await updateQuotation(quotation.id, payload);
+      updateMutation.mutate(
+        { id: quotation.id, input: payload },
+        {
+          onSuccess: handleSuccess,
+          onError: () => toast.error("Failed to update quotation"),
+        }
+      );
     } else {
-      await createQuotation(payload);
+      createMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: () => toast.error("Failed to create quotation"),
+      });
     }
-    onSuccess();
   };
 
   return (
@@ -286,25 +302,20 @@ export function QuotationFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Client</FormLabel>
-                        <Select
-                          onValueChange={(v) => {
-                            field.onChange(v);
-                            const c = clients.find((x) => x.id === v);
-                            if (c) form.setValue("clientName", c.name);
-                          }}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue placeholder="Select client" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {clients.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <EntityCombobox
+                            items={clients.map((c) => ({ id: c.id, label: c.name }))}
+                            value={field.value}
+                            onValueChange={(v) => {
+                              field.onChange(v);
+                              const c = clients.find((x) => x.id === v);
+                              if (c) form.setValue("clientName", c.name);
+                            }}
+                            placeholder="Select client"
+                            searchPlaceholder="Search client..."
+                            emptyText="No client found."
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -315,31 +326,24 @@ export function QuotationFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Project (optional)</FormLabel>
-                        <Select
-                          onValueChange={(v) => {
-                            if (v === "none") {
-                              field.onChange("");
-                              form.setValue("projectName", "");
-                            } else {
+                        <FormControl>
+                          <EntityCombobox
+                            items={projects.map((p) => ({
+                              id: p.id,
+                              label: p.namaProject,
+                            }))}
+                            value={field.value || ""}
+                            onValueChange={(v) => {
                               field.onChange(v);
                               const p = projects.find((x) => x.id === v);
-                              if (p) form.setValue("projectName", p.namaProject);
-                            }
-                          }}
-                          value={field.value || "none"}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue placeholder="Select project" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">— None —</SelectItem>
-                            {projects.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.namaProject}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                              form.setValue("projectName", p?.namaProject ?? "");
+                            }}
+                            placeholder="Select project"
+                            searchPlaceholder="Search project..."
+                            emptyText="No project found."
+                            allowEmpty
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -423,12 +427,14 @@ export function QuotationFormDialog({
                         render={({ field }) => (
                           <FormItem className="col-span-2">
                             <FormControl>
-                              <Input
-                                type="number"
-                                min={0}
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(parseFloat(e.target.value) || 0);
+                              <CurrencyInput
+                                prefix=""
+                                name={field.name}
+                                onBlur={field.onBlur}
+                                ref={field.ref}
+                                value={field.value}
+                                onChange={(v: number) => {
+                                  field.onChange(v);
                                   setTimeout(() => updateLineItemCalc(index), 0);
                                 }}
                                 className="h-8 text-sm"
@@ -456,12 +462,14 @@ export function QuotationFormDialog({
                         render={({ field }) => (
                           <FormItem className="col-span-3">
                             <FormControl>
-                              <Input
-                                type="number"
-                                min={0}
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(parseFloat(e.target.value) || 0);
+                              <CurrencyInput
+                                prefix="Rp"
+                                name={field.name}
+                                onBlur={field.onBlur}
+                                ref={field.ref}
+                                value={field.value}
+                                onChange={(v: number) => {
+                                  field.onChange(v);
                                   setTimeout(() => updateLineItemCalc(index), 0);
                                 }}
                                 className="h-8 text-sm"
@@ -541,8 +549,19 @@ export function QuotationFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={
+                  createMutation.isPending ||
+                  updateMutation.isPending ||
+                  form.formState.isSubmitting
+                }
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Bell,
   Brush,
@@ -27,6 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useSettings, useUpdateSettings } from "@/hooks/useSettings";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -37,6 +39,47 @@ export default function SettingsPage() {
   const [dailyBackup, setDailyBackup] = useState(true);
   const [softDelete, setSoftDelete] = useState(true);
   const [compactMode, setCompactMode] = useState(false);
+
+  const { data } = useSettings();
+  const updateMutation = useUpdateSettings();
+
+  // Sync form state with settings from API
+  useEffect(() => {
+    if (!data) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (data.companyName) setEmailNotifications(data.emailNotifications ?? true);
+    if (data.pushNotifications != null) setPushNotifications(data.pushNotifications);
+    if (data.securityAlerts != null) setSecurityAlerts(data.securityAlerts);
+    if (data.twoFactorAuth != null) setTwoFactorAuth(data.twoFactorAuth);
+    if (data.autoAssignApprover != null) setAutoAssignApprover(data.autoAssignApprover);
+    if (data.dailyBackup != null) setDailyBackup(data.dailyBackup);
+    if (data.softDelete != null) setSoftDelete(data.softDelete);
+    if (data.compactMode != null) setCompactMode(data.compactMode);
+  }, [data]);
+
+  const handleSave = () => {
+    updateMutation.mutate(
+      {
+        emailNotifications,
+        pushNotifications,
+        securityAlerts,
+        twoFactorAuth,
+        autoAssignApprover,
+        dailyBackup,
+        softDelete,
+        compactMode,
+      },
+      {
+        onSuccess: () => toast.success("Settings saved successfully."),
+        onError: (e) =>
+          toast.error(
+            e && typeof e === "object" && "message" in e
+              ? String((e as { message: string }).message)
+              : "Failed to save settings."
+          ),
+      }
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4 p-4 max-w-[1600px] mx-auto bg-white dark:bg-[#111111] min-h-screen transition-colors">
@@ -50,9 +93,9 @@ export default function SettingsPage() {
             Configure organization profile, regional preferences, notifications, and security.
           </p>
         </div>
-        <Button className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all">
+        <Button onClick={handleSave} disabled={updateMutation.isPending} className="h-9 gap-2 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 shadow-sm transition-all">
           <Save className="h-4 w-4" />
-          Save Changes
+          {updateMutation.isPending ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 

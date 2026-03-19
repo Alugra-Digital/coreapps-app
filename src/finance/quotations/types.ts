@@ -7,7 +7,7 @@ export interface QuotationLineItem {
   subtotal: number;
 }
 
-export type QuotationStatus = "draft" | "sent" | "accepted" | "rejected" | "expired";
+export type QuotationStatus = "draft" | "sent" | "accepted" | "rejected" | "expired" | "negotiation";
 
 export interface Quotation {
   id: string;

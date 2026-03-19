@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { AlertCircle, Plus, Trash2, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Form,
@@ -27,15 +28,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   proposalPenawaranFormSchema,
   type ProposalPenawaranFormValues,
 } from "../schema";
-import { createProposal, updateProposal } from "@/api/proposal-penawaran";
-import { getClients } from "@/api/clients";
-import type { Client } from "@/api/clients";
+import { useCreateProposal, useUpdateProposal } from "@/hooks/useProposal";
+import { useClients } from "@/hooks/useClients";
+import { toast } from "sonner";
+import { terbilang } from "@/lib/currency";
 import type { ProposalPenawaran } from "../types";
 
 interface ProposalPenawaranFormDialogProps {
@@ -98,13 +102,10 @@ export function ProposalPenawaranFormDialog({
   onSuccess,
 }: ProposalPenawaranFormDialogProps) {
   const isEdit = !!proposal;
-  const [clients, setClients] = useState<Client[]>([]);
-
-  useEffect(() => {
-    if (open) {
-      getClients().then(setClients);
-    }
-  }, [open]);
+  const createMutation = useCreateProposal();
+  const updateMutation = useUpdateProposal();
+  const { data: clients = [] } = useClients();
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const form = useForm<ProposalPenawaranFormValues>({
     resolver: zodResolver(proposalPenawaranFormSchema),
@@ -130,6 +131,16 @@ export function ProposalPenawaranFormDialog({
   });
 
   const items = form.watch("items");
+  const totalCost = form.watch("totalEstimatedCost");
+  const setValue = form.setValue;
+
+  useEffect(() => {
+    if (totalCost > 0) {
+      setValue("totalEstimatedCostInWords", terbilang(totalCost) + " Rupiah", { shouldValidate: true });
+    } else {
+      setValue("totalEstimatedCostInWords", "");
+    }
+  }, [totalCost, setValue]);
 
   const updateItemTotal = useCallback(
     (index: number) => {
@@ -252,7 +263,7 @@ export function ProposalPenawaranFormDialog({
     }
   }, [proposal, open, form]);
 
-  const onSubmit = async (values: ProposalPenawaranFormValues) => {
+  const onSubmit = (values: ProposalPenawaranFormValues) => {
     const payload = {
       coverInfo: values.coverInfo,
       proposalNumber: values.proposalNumber,
@@ -280,12 +291,31 @@ export function ProposalPenawaranFormDialog({
       status: values.status,
     };
 
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && proposal) {
-      await updateProposal(proposal.id, payload);
+      updateMutation.mutate(
+        { id: proposal.id, input: payload },
+        {
+          onSuccess: (data) => {
+            if (data === null) {
+              toast.error("Failed to update proposal");
+            } else {
+              handleSuccess();
+            }
+          },
+          onError: () => toast.error("Failed to update proposal"),
+        }
+      );
     } else {
-      await createProposal(payload);
+      createMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: () => toast.error("Failed to create proposal"),
+      });
     }
-    onSuccess();
   };
 
   const scopeItems = form.watch("scopeOfWork") || [];
@@ -302,7 +332,25 @@ export function ProposalPenawaranFormDialog({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(onSubmit)}
+            onSubmit={form.handleSubmit(onSubmit, (errors) => {
+              const tabMap: Record<string, string> = {
+                coverInfo: "Cover",
+                proposalNumber: "Content & Client",
+                clientInfo: "Content & Client",
+                status: "Content & Client",
+                items: "Items",
+                totalEstimatedCost: "Items",
+                totalEstimatedCostInWords: "Items",
+                currency: "Items",
+                scopeOfWork: "Scope & Terms",
+                termsAndConditions: "Scope & Terms",
+                notes: "Scope & Terms",
+                documentApproval: "Approval",
+              };
+              const errorFields = Object.keys(errors);
+              const tabs = [...new Set(errorFields.map((f) => tabMap[f] ?? f))];
+              setValidationError(`Mohon lengkapi field wajib di tab: ${tabs.join(", ")}`);
+            })}
             className="flex flex-col flex-1 overflow-hidden"
           >
             <Tabs defaultValue="cover" className="flex-1 flex flex-col gap-4 overflow-hidden">
@@ -313,6 +361,23 @@ export function ProposalPenawaranFormDialog({
                 <TabsTrigger value="scope" className="text-xs px-2 py-1.5">Scope & Terms</TabsTrigger>
                 <TabsTrigger value="approval" className="text-xs px-2 py-1.5">Approval</TabsTrigger>
               </TabsList>
+
+              {validationError && (
+                <div className="mx-6">
+                  <Alert variant="destructive" className="relative py-2">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle className="text-xs font-semibold">Field wajib belum diisi</AlertTitle>
+                    <AlertDescription className="text-xs">{validationError}</AlertDescription>
+                    <button
+                      type="button"
+                      className="absolute right-2 top-2 text-destructive hover:opacity-70"
+                      onClick={() => setValidationError(null)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </Alert>
+                </div>
+              )}
 
               <ScrollArea className="flex-1 px-6 pb-4">
                 <TabsContent value="cover" className="mt-0 space-y-4">
@@ -429,30 +494,29 @@ export function ProposalPenawaranFormDialog({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Client (Opsional)</FormLabel>
-                        <Select
-                          value={field.value || "none"}
-                          onValueChange={(v) => {
-                            field.onChange(v === "none" ? "" : v);
-                            const client = clients.find((c) => c.id === v);
-                            if (client) {
-                              form.setValue("clientInfo.clientName", client.name);
-                            }
-                          }}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-9 text-sm">
-                              <SelectValue placeholder="Pilih client..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">-- Manual --</SelectItem>
-                            {clients.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <EntityCombobox
+                            items={clients.map((c) => ({
+                              id: c.id,
+                              label: c.companyName || c.name,
+                            }))}
+                            value={field.value || ""}
+                            onValueChange={(v) => {
+                              field.onChange(v);
+                              const client = clients.find((c) => c.id === v);
+                              if (client) {
+                                form.setValue(
+                                  "clientInfo.clientName",
+                                  client.companyName || client.name
+                                );
+                              }
+                            }}
+                            placeholder="Pilih client..."
+                            searchPlaceholder="Cari client..."
+                            emptyText="Tidak ada client."
+                            allowEmpty
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -566,13 +630,13 @@ export function ProposalPenawaranFormDialog({
                           render={({ field }) => (
                             <FormItem className="col-span-2">
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step={0.01}
-                                  {...field}
-                                  onChange={(e) => {
-                                    const v = parseFloat(e.target.value) || 0;
+                                <CurrencyInput
+                                  prefix=""
+                                  name={field.name}
+                                  onBlur={field.onBlur}
+                                  ref={field.ref}
+                                  value={field.value}
+                                  onChange={(v: number) => {
                                     field.onChange(v);
                                     setTimeout(() => updateItemTotal(index), 0);
                                   }}
@@ -601,13 +665,13 @@ export function ProposalPenawaranFormDialog({
                           render={({ field }) => (
                             <FormItem className="col-span-3">
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step={1}
-                                  {...field}
-                                  onChange={(e) => {
-                                    const v = parseFloat(e.target.value) || 0;
+                                <CurrencyInput
+                                  prefix="Rp"
+                                  name={field.name}
+                                  onBlur={field.onBlur}
+                                  ref={field.ref}
+                                  value={field.value}
+                                  onChange={(v: number) => {
                                     field.onChange(v);
                                     setTimeout(() => updateItemTotal(index), 0);
                                   }}
@@ -644,10 +708,13 @@ export function ProposalPenawaranFormDialog({
                         <FormLabel className="text-xs">Total Estimasi Biaya</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            min={0}
-                            {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            type="text"
+                            placeholder="0"
+                            value={field.value ? new Intl.NumberFormat("id-ID").format(field.value) : ""}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/[^0-9]/g, "");
+                              field.onChange(rawValue ? parseInt(rawValue, 10) : 0);
+                            }}
                             className="h-9 text-sm"
                           />
                         </FormControl>
@@ -660,9 +727,9 @@ export function ProposalPenawaranFormDialog({
                     name="totalEstimatedCostInWords"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Total Dalam Kata</FormLabel>
+                        <FormLabel className="text-xs">Terbilang</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Satu Milyar Dua Ratus Juta Rupiah" className="h-9 text-sm" />
+                          <Input {...field} readOnly className="h-9 text-sm bg-slate-50 dark:bg-white/5 cursor-not-allowed" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -835,8 +902,15 @@ export function ProposalPenawaranFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import {
@@ -26,8 +26,20 @@ import {
   purchaseOrderFormSchema,
   type PurchaseOrderFormValues,
 } from "../schema";
-import { createPurchaseOrder, updatePurchaseOrder } from "@/api/purchase-orders";
+import {
+  useCreatePurchaseOrder,
+  useUpdatePurchaseOrder,
+} from "@/hooks/usePurchaseOrders";
+import { useClients } from "@/hooks/useClients";
 import type { PurchaseOrder } from "../types";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PurchaseOrderFormDialogProps {
   open: boolean;
@@ -92,10 +104,14 @@ export function PurchaseOrderFormDialog({
   onSuccess,
 }: PurchaseOrderFormDialogProps) {
   const isEdit = !!purchaseOrder;
+  const createMutation = useCreatePurchaseOrder();
+  const updateMutation = useUpdatePurchaseOrder();
 
+  const { data: clients = [] } = useClients();
   const form = useForm<PurchaseOrderFormValues>({
-    resolver: zodResolver(purchaseOrderFormSchema),
+    resolver: zodResolver(purchaseOrderFormSchema) as Resolver<PurchaseOrderFormValues>,
     defaultValues: {
+      clientId: null,
       companyInfo: defaultCompanyInfo,
       orderInfo: defaultOrderInfo,
       vendorInfo: defaultVendorInfo,
@@ -155,14 +171,29 @@ export function PurchaseOrderFormDialog({
 
   useEffect(() => {
     if (purchaseOrder) {
+      // Null-safe fallbacks: older PO records have null for JSONB columns.
+      // Merging with defaults prevents Zod's "expected object, received null" error.
       form.reset({
+        clientId: purchaseOrder.clientId ?? null,
         companyInfo: {
           ...defaultCompanyInfo,
-          ...purchaseOrder.companyInfo,
-          logoUrl: purchaseOrder.companyInfo.logoUrl ?? "",
+          ...(purchaseOrder.companyInfo ?? {}),
+          logoUrl: purchaseOrder.companyInfo?.logoUrl ?? "",
         },
-        orderInfo: purchaseOrder.orderInfo,
-        vendorInfo: purchaseOrder.vendorInfo,
+        orderInfo: {
+          ...defaultOrderInfo,
+          ...(purchaseOrder.orderInfo ?? {}),
+        },
+        vendorInfo: {
+          ...defaultVendorInfo,
+          vendorName: purchaseOrder.vendorInfo?.vendorName ?? "",
+          phone: purchaseOrder.vendorInfo?.phone ?? "",
+          pic: {
+            name: purchaseOrder.vendorInfo?.pic?.name ?? "",
+            position: purchaseOrder.vendorInfo?.pic?.position ?? "",
+            contact: purchaseOrder.vendorInfo?.pic?.contact ?? "",
+          },
+        },
         lineItems: purchaseOrder.lineItems.map((li) => ({
           ...li,
           taxRate: li.taxRate ?? 11,
@@ -170,12 +201,14 @@ export function PurchaseOrderFormDialog({
         paymentProcedure: purchaseOrder.paymentProcedure ?? "",
         otherTerms: purchaseOrder.otherTerms ?? "",
         approval: {
-          ...purchaseOrder.approval,
-          signatureUrl: purchaseOrder.approval.signatureUrl ?? "",
+          ...defaultApproval,
+          ...(purchaseOrder.approval ?? {}),
+          signatureUrl: purchaseOrder.approval?.signatureUrl ?? "",
         },
       });
     } else if (open) {
       form.reset({
+        clientId: null,
         companyInfo: defaultCompanyInfo,
         orderInfo: { ...defaultOrderInfo, poDate: new Date().toISOString().slice(0, 10) },
         vendorInfo: defaultVendorInfo,
@@ -187,11 +220,16 @@ export function PurchaseOrderFormDialog({
     }
   }, [purchaseOrder, open, form]);
 
-  const onSubmit = async (values: PurchaseOrderFormValues) => {
+  const onSubmit = (values: PurchaseOrderFormValues) => {
     const payload = {
+      clientId: values.clientId ?? undefined,
       companyInfo: values.companyInfo,
       orderInfo: values.orderInfo,
-      vendorInfo: values.vendorInfo,
+      vendorInfo: {
+        vendorName: values.vendorInfo?.vendorName ?? "",
+        phone: values.vendorInfo?.phone ?? "",
+        pic: values.vendorInfo?.pic ?? { name: "", position: "", contact: "" },
+      },
       lineItems: values.lineItems.map((li, i) => ({
         ...li,
         number: i + 1,
@@ -204,12 +242,25 @@ export function PurchaseOrderFormDialog({
       approval: values.approval,
     };
 
+    const handleSuccess = () => {
+      onOpenChange(false);
+      onSuccess();
+    };
+
     if (isEdit && purchaseOrder) {
-      await updatePurchaseOrder(purchaseOrder.id, payload);
+      updateMutation.mutate(
+        { id: purchaseOrder.id, input: payload },
+        {
+          onSuccess: handleSuccess,
+          onError: () => toast.error("Failed to update purchase order"),
+        }
+      );
     } else {
-      await createPurchaseOrder(payload);
+      createMutation.mutate(payload, {
+        onSuccess: handleSuccess,
+        onError: () => toast.error("Failed to create purchase order"),
+      });
     }
-    onSuccess();
   };
 
   return (
@@ -362,12 +413,63 @@ export function PurchaseOrderFormDialog({
                 <TabsContent value="vendor" className="mt-0 space-y-4">
                   <FormField
                     control={form.control}
+                    name="clientId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs">Client (Supplier)</FormLabel>
+                        <Select
+                          value={field.value != null ? String(field.value) : "__manual__"}
+                          onValueChange={(v) => {
+                            const id = v && v !== "__manual__" ? parseInt(v, 10) : null;
+                            field.onChange(id);
+                            if (id) {
+                              const c = clients.find((x) => {
+                                const numId = typeof x.id === "string" && x.id.startsWith("CLI-")
+                                  ? parseInt(x.id.replace(/^CLI-/, ""), 10)
+                                  : parseInt(String(x.id), 10);
+                                return numId === id;
+                              });
+                              if (c) {
+                                form.setValue("vendorInfo.vendorName", c.companyName ?? c.name ?? "");
+                                form.setValue("vendorInfo.phone", c.phone ?? "");
+                                form.setValue("vendorInfo.pic.name", c.pic?.name ?? "");
+                                form.setValue("vendorInfo.pic.position", c.pic?.position ?? "");
+                                form.setValue("vendorInfo.pic.contact", c.pic?.contact ?? "");
+                              }
+                            }
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Pilih Client..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="__manual__">— Manual —</SelectItem>
+                            {clients.map((c) => {
+                              const numId = typeof c.id === "string" && c.id.startsWith("CLI-")
+                                ? parseInt(c.id.replace(/^CLI-/, ""), 10)
+                                : parseInt(String(c.id), 10);
+                              return (
+                                <SelectItem key={c.id} value={String(numId)}>
+                                  {c.companyName ?? c.name}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="vendorInfo.vendorName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs">Nama Vendor</FormLabel>
+                        <FormLabel className="text-xs">Nama Vendor / Perusahaan</FormLabel>
                         <FormControl>
-                          <Input {...field} className="h-9 text-sm" />
+                          <Input {...field} className="h-9 text-sm" placeholder="Atau isi manual" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -636,8 +738,15 @@ export function PurchaseOrderFormDialog({
               <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Saving..." : isEdit ? "Update" : "Create"}
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEdit
+                    ? "Update"
+                    : "Create"}
               </Button>
             </DialogFooter>
           </form>

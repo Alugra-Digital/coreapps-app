@@ -70,6 +70,7 @@ export function InvoiceActivity({ className }: { className?: string }) {
     currentPage * MODAL_PAGE_SIZE
   );
 
+  // Reset search and page when modal opens - intentional reset on modal open
   useEffect(() => {
     if (modalOpen) {
       setSearch('');
@@ -77,8 +78,11 @@ export function InvoiceActivity({ className }: { className?: string }) {
     }
   }, [modalOpen]);
 
+  // Reset page if it exceeds total pages - intentional reset when page exceeds total
   useEffect(() => {
-    if (currentPage > totalPages) setCurrentPage(1);
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
   }, [totalPages, currentPage]);
 
   return (

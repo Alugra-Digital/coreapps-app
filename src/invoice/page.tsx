@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useId } from "react";
+import { useState, useId } from "react";
 import {
   FilePlus,
   TrendingUp,
@@ -15,8 +15,7 @@ import { InvoiceTable } from "./components/InvoiceTable";
 import { InvoiceActivity } from "./components/InvoiceActivity";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getInvoices } from "@/api/invoices";
-import type { Invoice } from "./types";
+import { useInvoices } from "@/hooks/useInvoices";
 
 const totalInvoicedChartData = [
   { value: 35 },
@@ -104,31 +103,13 @@ function CircularProgress({
 }
 
 export default function InvoicePage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const loadInvoices = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const data = await getInvoices();
-      setInvoices(data);
-    } catch (err) {
-      const message = err && typeof err === "object" && "message" in err
-        ? String((err as { message: string }).message)
-        : "Failed to load invoices";
-      setError(message);
-      setInvoices([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadInvoices();
-  }, [loadInvoices]);
+  const { data: invoices = [], error, refetch } = useInvoices();
+  const errorMessage =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message: string }).message)
+      : null;
 
   const totalInvoiced = invoices.reduce((sum, inv) => {
     const items = inv.lineItems ?? [];
@@ -185,16 +166,16 @@ export default function InvoicePage() {
       </div>
 
       {/* Error state - visible when API fails */}
-      {error && (
+      {errorMessage && (
         <div
           className="flex items-center justify-between gap-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3"
           data-testid="invoice-load-error"
         >
           <div className="flex items-center gap-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
+            <span>{errorMessage}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={loadInvoices}>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" /> Try again
           </Button>
         </div>
@@ -237,7 +218,7 @@ export default function InvoicePage() {
         <div className="xl:col-span-8 flex flex-col min-h-0">
           <InvoiceTable
             invoices={invoices}
-            onRefresh={loadInvoices}
+            onRefresh={() => refetch()}
             onAddClick={() => setIsAddOpen(true)}
             isAddOpen={isAddOpen}
             onAddOpenChange={setIsAddOpen}

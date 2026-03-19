@@ -12,6 +12,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { EntityCombobox } from "@/components/ui/entity-combobox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
@@ -53,8 +55,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { EmployeeFormDialog } from "./EmployeeFormDialog";
-import { EmployeeViewDialog } from "./EmployeeViewDialog";
 import { softDeleteEmployee } from "@/api/employees";
 import { exportEmployeesToExcel, exportEmployeesToPdf } from "../utils/exportEmployees";
 import type { Employee } from "../types";
@@ -74,17 +74,14 @@ export function EmployeeTable({
   employees,
   onRefresh,
   onAddClick,
-  isAddOpen,
-  onAddOpenChange,
-}: EmployeeTableProps) {
+}: Omit<EmployeeTableProps, 'isAddOpen' | 'onAddOpenChange'>) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [positionFilter, setPositionFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"active" | "resigned" | "all">("active");
   const [showResigned, setShowResigned] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
-  const [viewEmployee, setViewEmployee] = useState<Employee | null>(null);
   const [deleteEmployeeId, setDeleteEmployeeId] = useState<string | null>(null);
   const [deleteEmployeeName, setDeleteEmployeeName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -167,15 +164,7 @@ export function EmployeeTable({
     exportEmployeesToPdf(filtered);
   };
 
-  const handleAddSuccess = () => {
-    onAddOpenChange(false);
-    onRefresh();
-  };
 
-  const handleEditSuccess = () => {
-    setEditEmployee(null);
-    onRefresh();
-  };
 
   return (
     <>
@@ -215,19 +204,18 @@ export function EmployeeTable({
                   <div className="space-y-4">
                     <div>
                       <Label className="text-xs text-foreground">Position</Label>
-                      <Select value={positionFilter} onValueChange={setPositionFilter}>
-                        <SelectTrigger className="h-8 mt-1 text-xs">
-                          <SelectValue placeholder="All positions" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All positions</SelectItem>
-                          {uniquePositions.map((p) => (
-                            <SelectItem key={p} value={p}>
-                              {p}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <EntityCombobox
+                        items={[
+                          { id: "all", label: "All positions" },
+                          ...uniquePositions.map((p) => ({ id: p, label: p })),
+                        ]}
+                        value={positionFilter}
+                        onValueChange={setPositionFilter}
+                        placeholder="All positions"
+                        searchPlaceholder="Search position..."
+                        emptyText="No position found."
+                        triggerClassName="h-8 mt-1 text-xs"
+                      />
                     </div>
                     <div>
                       <Label className="text-xs text-foreground">Status</Label>
@@ -403,13 +391,13 @@ export function EmployeeTable({
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => setViewEmployee(emp)}
+                          onClick={() => navigate(`/hr/employees/${emp.id}`)}
                           data-testid={`employee-view-btn-${emp.id}`}
                         >
                           <Eye className="h-3.5 w-3.5 mr-2" /> View
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => setEditEmployee(emp)}
+                          onClick={() => navigate(`/hr/employees/${emp.id}/edit`)}
                           data-testid={`employee-edit-btn-${emp.id}`}
                         >
                           <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
@@ -464,32 +452,7 @@ export function EmployeeTable({
         )}
       </Card>
 
-      {/* Add Employee Dialog */}
-      <EmployeeFormDialog
-        open={isAddOpen}
-        onOpenChange={onAddOpenChange}
-        onSuccess={handleAddSuccess}
-      />
 
-      {/* Edit Employee Dialog */}
-      <EmployeeFormDialog
-        open={!!editEmployee}
-        onOpenChange={(open) => !open && setEditEmployee(null)}
-        employee={editEmployee ?? undefined}
-        onSuccess={handleEditSuccess}
-      />
-
-      {/* View Employee Dialog */}
-      <EmployeeViewDialog
-        employee={viewEmployee}
-        onOpenChange={(open) => !open && setViewEmployee(null)}
-        onEdit={() => {
-          if (viewEmployee) {
-            setViewEmployee(null);
-            setEditEmployee(viewEmployee);
-          }
-        }}
-      />
 
       {/* Delete Confirmation */}
       <AlertDialog

@@ -1,45 +1,29 @@
-import { Plus, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { Plus, AlertCircle, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { UserTable } from "./components/UserTable";
 import { Button } from "@/components/ui/button";
-import { getUsersPaginated } from "@/api/users";
+import { useUsersPaginated } from "@/hooks/useUsers";
 import type { User } from "./types";
+import { PageLoader } from "@/components/ui/PageLoader";
 
 const PAGE_SIZE = 10;
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  const loadUsers = useCallback(async (page = 1) => {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await getUsersPaginated({ page, limit: PAGE_SIZE });
-      setUsers(res.data);
-      setTotal(res.total);
-      setTotalPages(res.totalPages);
-      setCurrentPage(res.page);
-    } catch (err) {
-      const message =
-        err && typeof err === "object" && "message" in err
-          ? String((err as { message: string }).message)
-          : "Failed to load users";
-      setError(message);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isLoading, error, refetch } = useUsersPaginated({
+    page: currentPage,
+    limit: PAGE_SIZE,
+  });
 
-  useEffect(() => {
-    loadUsers(currentPage);
-  }, [loadUsers, currentPage]);
+  const users: User[] = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+  const errorMessage =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message: string }).message)
+      : null;
 
   return (
     <div
@@ -67,35 +51,27 @@ export default function UsersPage() {
         </Button>
       </div>
 
-      {loading && (
-        <div
-          className="flex items-center justify-center gap-2 py-12 text-muted-foreground"
-          data-testid="users-loading"
-        >
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading users...</span>
-        </div>
-      )}
+      {isLoading && <PageLoader />}
 
-      {!loading && error && (
+      {!isLoading && errorMessage && (
         <div
           className="flex items-center justify-between gap-4 rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3"
           data-testid="users-load-error"
         >
           <div className="flex items-center gap-2 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error}</span>
+            <span>{errorMessage}</span>
           </div>
-          <Button variant="outline" size="sm" onClick={() => loadUsers(currentPage)}>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" /> Try again
           </Button>
         </div>
       )}
 
-      {!loading && (
+      {!isLoading && (
         <UserTable
           users={users}
-          onRefresh={() => loadUsers(currentPage)}
+          onRefresh={() => refetch()}
           onAddClick={() => setIsAddOpen(true)}
           isAddOpen={isAddOpen}
           onAddOpenChange={setIsAddOpen}

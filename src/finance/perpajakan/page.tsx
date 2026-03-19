@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FileText,
   Plus,
@@ -9,98 +10,15 @@ import {
   Scale,
   TimerReset,
 } from "lucide-react";
-import { useState } from "react";
 import { TaxTypeTable } from "./components/TaxTypeTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { TaxType } from "./types";
-
-const DUMMY_TAX_TYPES: TaxType[] = [
-  {
-    id: "tax-001",
-    code: "PPN-11",
-    name: "PPN Keluaran 11%",
-    rate: 11,
-    category: "output_tax",
-    description: "Pajak pertambahan nilai atas penyerahan barang/jasa kena pajak domestik.",
-    regulation: "UU HPP 2021",
-    applicableDocuments: ["invoice", "po"],
-    isActive: true,
-    createdAt: "2026-01-08T09:00:00Z",
-    updatedAt: "2026-02-10T10:00:00Z",
-  },
-  {
-    id: "tax-002",
-    code: "PPN-12",
-    name: "PPN Keluaran 12%",
-    rate: 12,
-    category: "output_tax",
-    description: "Template PPN untuk skenario penyesuaian tarif baru.",
-    regulation: "Draft PMK 2026",
-    applicableDocuments: ["invoice"],
-    isActive: false,
-    createdAt: "2026-01-20T09:00:00Z",
-    updatedAt: "2026-02-11T14:00:00Z",
-  },
-  {
-    id: "tax-003",
-    code: "PPh23-2",
-    name: "PPh 23 Jasa 2%",
-    rate: 2,
-    category: "withholding_tax",
-    description: "PPh Pasal 23 atas jasa tertentu yang dipotong oleh lawan transaksi.",
-    regulation: "PMK No. 141/PMK.03/2015",
-    applicableDocuments: ["invoice", "bast"],
-    isActive: true,
-    createdAt: "2025-12-15T09:00:00Z",
-    updatedAt: "2026-02-12T08:30:00Z",
-  },
-  {
-    id: "tax-004",
-    code: "PPh4-2-10",
-    name: "PPh Final 4(2) 10%",
-    rate: 10,
-    category: "withholding_tax",
-    description: "PPh Final untuk sewa tanah/bangunan dan transaksi sesuai ketentuan 4(2).",
-    regulation: "PP No. 34 Tahun 2017",
-    applicableDocuments: ["invoice", "po"],
-    isActive: true,
-    createdAt: "2025-11-28T13:00:00Z",
-    updatedAt: "2026-02-06T11:45:00Z",
-  },
-  {
-    id: "tax-005",
-    code: "PPH21-5",
-    name: "PPh 21 Non-Pegawai 5%",
-    rate: 5,
-    category: "withholding_tax",
-    description: "Potongan PPh 21 untuk tenaga ahli non-pegawai sesuai batas tarif berlaku.",
-    regulation: "PER-16/PJ/2016",
-    applicableDocuments: ["invoice"],
-    isActive: true,
-    createdAt: "2025-12-05T08:00:00Z",
-    updatedAt: "2026-02-09T10:10:00Z",
-  },
-  {
-    id: "tax-006",
-    code: "PPN-DPP-NILAI",
-    name: "PPN DPP Nilai Lain",
-    rate: 1,
-    category: "output_tax",
-    description: "Skema PPN untuk basis pengenaan nilai lain pada jenis transaksi khusus.",
-    regulation: "PMK No. 75/PMK.03/2010",
-    applicableDocuments: ["invoice", "bast"],
-    isActive: true,
-    createdAt: "2026-01-03T07:30:00Z",
-    updatedAt: "2026-02-13T09:20:00Z",
-  },
-];
+import { useTaxTypes } from "@/hooks/useTaxTypes";
 
 export default function PerpajakanPage() {
-  const [taxTypes] = useState<TaxType[]>(DUMMY_TAX_TYPES);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
-  const loadTaxTypes = () => {};
+  const { data: taxTypes = [], refetch } = useTaxTypes();
 
   const outputTaxCount = taxTypes.filter((t) => t.category === "output_tax").length;
   const withholdingTaxCount = taxTypes.filter((t) => t.category === "withholding_tax").length;
@@ -291,7 +209,7 @@ export default function PerpajakanPage() {
 
       <TaxTypeTable
         taxTypes={taxTypes}
-        onRefresh={loadTaxTypes}
+        onRefresh={() => refetch()}
         onAddClick={() => setIsAddOpen(true)}
         isAddOpen={isAddOpen}
         onAddOpenChange={setIsAddOpen}

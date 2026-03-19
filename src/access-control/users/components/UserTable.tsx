@@ -1,5 +1,5 @@
 import { Search, MoreVertical, Pencil, Trash2, Users, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,9 +27,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UserFormDialog } from "./UserFormDialog";
 import { deleteUser } from "@/api/users";
-import { getRoles } from "@/api/roles";
+import { useRoles } from "@/hooks/useRoles";
 import type { User } from "../types";
-import type { Role } from "@/access-control/roles/types";
 
 interface PaginationProps {
   currentPage: number;
@@ -60,12 +59,8 @@ export function UserTable({
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [deleteUserName, setDeleteUserName] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const [roles, setRoles] = useState<Role[]>([]);
 
-  useEffect(() => {
-    getRoles().then(setRoles);
-  }, []);
-
+  const { data: roles = [] } = useRoles();
   const roleMap = new Map(roles.map((r) => [r.id, r]));
 
   const filtered = users.filter(
