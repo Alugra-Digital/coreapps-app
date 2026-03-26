@@ -22,3 +22,27 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# OS artifacts
+**/.DS_Store
+Thumbs.db
+
+# Test & build output
+test-results/
+playwright-report/
+coverage/
+
+# Compiler / linter output files
+tsc-errors.txt
+lint.txt
+*.tsbuildinfo
+
+# Generated API mapping / planning docs (auto-created by AI/tools)
+API_MAPPING_*.md
+*_implementation_plan.md
+frontend_API_integration.md
+
+# Environment secrets
+.env.production
+.env.local
+.env.staging
