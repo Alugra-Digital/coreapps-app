@@ -138,7 +138,6 @@ export function Sidebar({ className }: SidebarProps) {
                         <SidebarItem
                           key={child.permissionKey}
                           to={child.path}
-                          icon={child.icon}
                           label={child.label}
                           hasChevron={hasGrandChildren}
                           active={isGrandParentActive}
@@ -350,7 +349,7 @@ export function Sidebar({ className }: SidebarProps) {
 }
 
 interface SidebarItemProps {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   label: string;
   to?: string;
   active?: boolean;
