@@ -12,6 +12,12 @@ import {
   Users,
   Briefcase,
   Lock,
+  CalendarDays,
+  Clock,
+  Banknote,
+  DollarSign,
+  TrendingUp,
+  Factory,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -132,12 +138,13 @@ export function Sidebar({ className }: SidebarProps) {
                         <SidebarItem
                           key={child.permissionKey}
                           to={child.path}
+                          icon={child.icon}
                           label={child.label}
                           hasChevron={hasGrandChildren}
                           active={isGrandParentActive}
                           level={1}
                         >
-                          {child.children.map((grandChild) => (
+                          {child.children!.map((grandChild) => (
                             <SidebarSubItem
                               key={grandChild.permissionKey}
                               to={grandChild.path}
@@ -174,6 +181,27 @@ export function Sidebar({ className }: SidebarProps) {
           })}
         </div>
 
+        {/* CRM & Manufacturing Section */}
+        <div className="flex flex-col gap-1">
+          <div className="px-3 mb-2">
+            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              CRM & Manufacturing
+            </h2>
+          </div>
+          <SidebarItem
+            to="/crm"
+            icon={<TrendingUp className="h-[18px] w-[18px]" />}
+            label="CRM"
+            active={location.pathname === "/crm"}
+          />
+          <SidebarItem
+            to="/manufacturing"
+            icon={<Factory className="h-[18px] w-[18px]" />}
+            label="Manufacturing"
+            active={location.pathname === "/manufacturing"}
+          />
+        </div>
+
         {/* HR Section */}
         <div className="flex flex-col gap-1">
           <div className="px-3 mb-2">
@@ -192,6 +220,30 @@ export function Sidebar({ className }: SidebarProps) {
             icon={<Briefcase className="h-[18px] w-[18px]" />}
             label="Positions"
             active={location.pathname === "/hr/positions"}
+          />
+          <SidebarItem
+            to="/hr/leave"
+            icon={<CalendarDays className="h-[18px] w-[18px]" />}
+            label="Leave"
+            active={location.pathname === "/hr/leave"}
+          />
+          <SidebarItem
+            to="/hr/attendance"
+            icon={<Clock className="h-[18px] w-[18px]" />}
+            label="Attendance"
+            active={location.pathname === "/hr/attendance"}
+          />
+          <SidebarItem
+            to="/hr/loans"
+            icon={<Banknote className="h-[18px] w-[18px]" />}
+            label="Loans"
+            active={location.pathname === "/hr/loans"}
+          />
+          <SidebarItem
+            to="/hr/payroll"
+            icon={<DollarSign className="h-[18px] w-[18px]" />}
+            label="Payroll"
+            active={location.pathname === "/hr/payroll"}
           />
         </div>
 
