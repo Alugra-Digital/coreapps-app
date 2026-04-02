@@ -15,12 +15,14 @@ import { useAccountingPeriods } from '@/hooks/useAccountingPeriods';
 import { exportToExcel, type ExcelColumn } from '@/lib/export';
 import * as kasKecilApi from '@/api/kas-kecil';
 import * as kasBankApi from '@/api/kas-bank';
+import { useFinanceSetting } from '@/hooks/useFinanceSettings';
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const formatRp = (val: string | number) => `Rp ${Number(val).toLocaleString('id-ID', { minimumFractionDigits: 0 })}`;
 
-// Opening balance for January of the base year. All subsequent months derive from this.
-const BASE_SALDO = { year: 2026, month: 1, amount: 1_081_815_564.94 };
+// The opening balance is stored in the DB under this key (finance_settings table).
+// Base period is always January 2026.
+const BASE_PERIOD = { year: 2026, month: 1 };
 
 interface CombinedRow {
   key: string; source: 'KK' | 'KB'; transCode: string; date: string;
@@ -36,14 +38,18 @@ export default function CatatanPengeluaranPage() {
   const activePeriod = periods.find((p) => p.year === year && p.month === month);
   const { data: kasKecilData, isLoading: isLoadingKK, isError: isErrorKK } = useKasKecilList(activePeriod ? { periodId: activePeriod.id } : { month, year });
   const { data: kasBankData, isLoading: isLoadingKB, isError: isErrorKB } = useKasBankList(activePeriod ? { periodId: activePeriod.id } : { month, year });
-  const isLoading = isLoadingKK || isLoadingKB;
+  const { data: openingBalanceSetting, isLoading: isLoadingSetting } = useFinanceSetting('opening_cash_balance');
+  const isLoading = isLoadingKK || isLoadingKB || isLoadingSetting;
   const isError = isErrorKK || isErrorKB;
 
-  // Build list of months from BASE_SALDO month up to (but not including) the selected month.
+  // Parse the opening balance from DB; fall back to 0 while loading.
+  const openingCashBalance = Number(openingBalanceSetting?.value ?? 0);
+
+  // Build list of months from BASE_PERIOD up to (but not including) the selected month.
   // These are needed to compute the cumulative opening balance.
   const prevMonths = useMemo(() => {
     const months: { year: number; month: number }[] = [];
-    let y = BASE_SALDO.year, m = BASE_SALDO.month;
+    let y = BASE_PERIOD.year, m = BASE_PERIOD.month;
     while (y < year || (y === year && m < month)) {
       months.push({ year: y, month: m });
       m++;
@@ -66,9 +72,9 @@ export default function CatatanPengeluaranPage() {
     ]),
   });
 
-  // saldo awal = BASE + cumulative net of all months before the selected month.
+  // saldo awal = opening balance from DB + cumulative net of all months before the selected month.
   const saldoAwal = useMemo(() => {
-    let balance = BASE_SALDO.amount;
+    let balance = openingCashBalance;
     for (let i = 0; i < prevMonths.length; i++) {
       const kkResult = prevResults[i * 2];
       const kbResult = prevResults[i * 2 + 1];
@@ -81,7 +87,7 @@ export default function CatatanPengeluaranPage() {
       balance += kkNet + kbNet;
     }
     return balance;
-  }, [prevResults, prevMonths]);
+  }, [prevResults, prevMonths, openingCashBalance]);
 
   const rows = useMemo<(CombinedRow & { runningBalance: number })[]>(() => {
     const kkRows: CombinedRow[] = (kasKecilData?.transactions ?? []).map((tx) => ({ key: `KK-${tx.id}`, source: 'KK', transCode: tx.transNumber, date: tx.date, description: tx.description, masuk: Number(tx.debit), keluar: Number(tx.credit), coaAccount: tx.coaAccount, voucherCode: tx.voucherCode }));
