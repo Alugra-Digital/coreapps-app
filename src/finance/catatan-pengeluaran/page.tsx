@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueries } from '@tanstack/react-query';
 import { TrendingDown, TrendingUp, Wallet, Banknote, FileText, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -8,13 +9,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { FinanceStatCard } from '@/finance/components/FinanceStatCard';
 import { PeriodSelector } from '@/finance/components/PeriodSelector';
-import { useKasKecilList } from '@/hooks/useKasKecil';
-import { useKasBankList } from '@/hooks/useKasBank';
+import { useKasKecilList, kasKecilKeys } from '@/hooks/useKasKecil';
+import { useKasBankList, kasBankKeys } from '@/hooks/useKasBank';
 import { useAccountingPeriods } from '@/hooks/useAccountingPeriods';
 import { exportToExcel, type ExcelColumn } from '@/lib/export';
+import * as kasKecilApi from '@/api/kas-kecil';
+import * as kasBankApi from '@/api/kas-bank';
 
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const formatRp = (val: string | number) => `Rp ${Number(val).toLocaleString('id-ID', { minimumFractionDigits: 0 })}`;
+
+// Opening balance for January of the base year. All subsequent months derive from this.
+const BASE_SALDO = { year: 2026, month: 1, amount: 1_081_815_564.94 };
 
 interface CombinedRow {
   key: string; source: 'KK' | 'KB'; transCode: string; date: string;
@@ -33,18 +39,61 @@ export default function CatatanPengeluaranPage() {
   const isLoading = isLoadingKK || isLoadingKB;
   const isError = isErrorKK || isErrorKB;
 
+  // Build list of months from BASE_SALDO month up to (but not including) the selected month.
+  // These are needed to compute the cumulative opening balance.
+  const prevMonths = useMemo(() => {
+    const months: { year: number; month: number }[] = [];
+    let y = BASE_SALDO.year, m = BASE_SALDO.month;
+    while (y < year || (y === year && m < month)) {
+      months.push({ year: y, month: m });
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return months;
+  }, [year, month]);
+
+  // Fetch KK + KB data for all previous months in parallel (results are cached by React Query).
+  const prevResults = useQueries({
+    queries: prevMonths.flatMap(({ year: y, month: m }) => [
+      {
+        queryKey: kasKecilKeys.list({ month: m, year: y }),
+        queryFn: () => kasKecilApi.getKasKecilList({ month: m, year: y }),
+      },
+      {
+        queryKey: kasBankKeys.list({ month: m, year: y }),
+        queryFn: () => kasBankApi.getKasBankList({ month: m, year: y }),
+      },
+    ]),
+  });
+
+  // saldo awal = BASE + cumulative net of all months before the selected month.
+  const saldoAwal = useMemo(() => {
+    let balance = BASE_SALDO.amount;
+    for (let i = 0; i < prevMonths.length; i++) {
+      const kkResult = prevResults[i * 2];
+      const kbResult = prevResults[i * 2 + 1];
+      const kkNet = (kkResult?.data?.transactions ?? []).reduce(
+        (s, tx) => s + Number(tx.debit) - Number(tx.credit), 0
+      );
+      const kbNet = (kbResult?.data?.transactions ?? []).reduce(
+        (s, tx) => s + Number(tx.inflow) - Number(tx.outflow), 0
+      );
+      balance += kkNet + kbNet;
+    }
+    return balance;
+  }, [prevResults, prevMonths]);
+
   const rows = useMemo<(CombinedRow & { runningBalance: number })[]>(() => {
     const kkRows: CombinedRow[] = (kasKecilData?.transactions ?? []).map((tx) => ({ key: `KK-${tx.id}`, source: 'KK', transCode: tx.transNumber, date: tx.date, description: tx.description, masuk: Number(tx.debit), keluar: Number(tx.credit), coaAccount: tx.coaAccount, voucherCode: tx.voucherCode }));
     const kbRows: CombinedRow[] = (kasBankData?.transactions ?? []).map((tx) => ({ key: `KB-${tx.id}`, source: 'KB', transCode: tx.transactionCode, date: tx.date, description: tx.description, masuk: Number(tx.inflow), keluar: Number(tx.outflow), coaAccount: tx.coaAccount, voucherCode: tx.voucherCode }));
     const merged = [...kkRows, ...kbRows].sort((a, b) => a.date !== b.date ? a.date.localeCompare(b.date) : a.transCode.localeCompare(b.transCode));
-    let balance = 0;
+    let balance = saldoAwal;
     return merged.map((row) => { balance += row.masuk - row.keluar; return { ...row, runningBalance: balance }; });
-  }, [kasKecilData, kasBankData]);
+  }, [kasKecilData, kasBankData, saldoAwal]);
 
   const totalMasuk = rows.reduce((s, r) => s + r.masuk, 0);
   const totalKeluar = rows.reduce((s, r) => s + r.keluar, 0);
-  const saldoAkhir = rows.length > 0 ? rows[rows.length - 1].runningBalance : 0;
-  const saldoAwal = saldoAkhir - totalMasuk + totalKeluar;
+  const saldoAkhir = rows.length > 0 ? rows[rows.length - 1].runningBalance : saldoAwal;
   const kkCount = rows.filter((r) => r.source === 'KK').length;
   const kbCount = rows.filter((r) => r.source === 'KB').length;
   const isPeriodClosed = activePeriod && activePeriod.status !== 'OPEN';
