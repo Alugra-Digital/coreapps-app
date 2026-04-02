@@ -34,8 +34,8 @@ export default function CatatanPengeluaranPage() {
   const isError = isErrorKK || isErrorKB;
 
   const rows = useMemo<(CombinedRow & { runningBalance: number })[]>(() => {
-    const kkRows: CombinedRow[] = (kasKecilData ?? []).map((tx) => ({ key: `KK-${tx.id}`, source: 'KK', transCode: tx.transNumber, date: tx.date, description: tx.description, masuk: Number(tx.debit), keluar: Number(tx.credit), coaAccount: tx.coaAccount, voucherCode: tx.voucherCode }));
-    const kbRows: CombinedRow[] = (kasBankData ?? []).map((tx) => ({ key: `KB-${tx.id}`, source: 'KB', transCode: tx.transactionCode, date: tx.date, description: tx.description, masuk: Number(tx.inflow), keluar: Number(tx.outflow), coaAccount: tx.coaAccount, voucherCode: tx.voucherCode }));
+    const kkRows: CombinedRow[] = (kasKecilData?.transactions ?? []).map((tx) => ({ key: `KK-${tx.id}`, source: 'KK', transCode: tx.transNumber, date: tx.date, description: tx.description, masuk: Number(tx.debit), keluar: Number(tx.credit), coaAccount: tx.coaAccount, voucherCode: tx.voucherCode }));
+    const kbRows: CombinedRow[] = (kasBankData?.transactions ?? []).map((tx) => ({ key: `KB-${tx.id}`, source: 'KB', transCode: tx.transactionCode, date: tx.date, description: tx.description, masuk: Number(tx.inflow), keluar: Number(tx.outflow), coaAccount: tx.coaAccount, voucherCode: tx.voucherCode }));
     const merged = [...kkRows, ...kbRows].sort((a, b) => a.date !== b.date ? a.date.localeCompare(b.date) : a.transCode.localeCompare(b.transCode));
     let balance = 0;
     return merged.map((row) => { balance += row.masuk - row.keluar; return { ...row, runningBalance: balance }; });
