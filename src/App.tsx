@@ -29,8 +29,6 @@ const ManufacturingPage = lazy(() => import('./manufacturing/page'));
 const KasKecilPage = lazy(() => import('./finance/kas-kecil/page'));
 const KasBankPage = lazy(() => import('./finance/kas-bank/page'));
 const CatatanPengeluaranPage = lazy(() => import('./finance/catatan-pengeluaran/page'));
-const CatatanPengeluaranPage = lazy(() => import('./finance/catatan-pengeluaran/page'));
-const CatatanPengeluaranPage = lazy(() => import('./finance/catatan-pengeluaran/page'));
 const JurnalMemorialPage = lazy(() => import('./finance/jurnal-memorial/page'));
 const VouchersPage = lazy(() => import('./finance/vouchers/page'));
 const AssetsPage = lazy(() => import('./finance/assets/page'));
