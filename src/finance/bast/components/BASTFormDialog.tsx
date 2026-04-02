@@ -79,7 +79,7 @@ export function BASTFormDialog({
   });
 
   // Preview form hook - manages preview dialog flow
-  const previewForm = usePreviewForm<BASTFormValues>({
+  const previewForm = usePreviewForm({
     form,
     onSubmit: async (values) => {
       // This is called after confirming in preview dialog
@@ -106,6 +106,7 @@ export function BASTFormDialog({
       onOpenChange(false);
       onSuccess();
     },
+    config: bastPreviewConfig,
   });
 
   useEffect(() => {

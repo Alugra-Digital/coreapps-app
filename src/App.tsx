@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
@@ -5,58 +6,77 @@ import { Sidebar } from '@/components/Sidebar';
 import { TopBar } from '@/components/TopBar';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AuthProvider } from '@/contexts/AuthContext';
-import DashboardPage from '@/dashboard/page';
-import InventoryPage from './inventory/page';
-import InvoicePage from './invoice/page';
-import InvoiceCreatePage from './invoice/InvoiceCreatePage';
-import ProfilePage from './profile/page';
-import LoginPage from './login/page';
-import SalesPage from './sales/page';
-import ModalPage from './modal/page';
-import HREmployeePage from './hr/employees/page';
-import EmployeeDetailPage from './hr/employees/detail/page';
-import EmployeeFormPage from './hr/employees/form/page';
-import HRPositionsPage from './hr/positions/page';
-import PositionFormPage from './hr/positions/form/page';
-import KasKecilPage from './finance/kas-kecil/page';
-import KasBankPage from './finance/kas-bank/page';
-import JurnalMemorialPage from './finance/jurnal-memorial/page';
-import VouchersPage from './finance/vouchers/page';
-import AssetsPage from './finance/assets/page';
-import AssetFormPage from './finance/assets/form/page';
-import AssetDetailPage from './finance/assets/detail/page';
-import AssetAcquisitionJournalsPage from './finance/asset-acquisition-journals/page';
-import AssetDepreciationJournalsPage from './finance/asset-depreciation-journals/page';
-import VoucherFormPage from './finance/vouchers/form/page';
-import VoucherDetailPage from './finance/vouchers/detail/page';
-import PurchaseOrderPage from './finance/purchase-orders/page';
-import PurchaseOrderDetailPage from './finance/purchase-orders/detail/page';
-import PurchaseOrderFormPage from './finance/purchase-orders/form/page';
-import ClientsPage from './finance/clients/page';
-import ClientDetailPage from './finance/clients/detail/page';
-import ClientFormPage from './finance/clients/form/page';
-import BASTPage from './finance/bast/page';
-import PerpajakanPage from './finance/perpajakan/page';
-import QuotationsPage from './finance/quotations/page';
-import ProposalPenawaranPage from './finance/proposal-penawaran/page';
-import NewTransactionPage from './finance/new-transaction/page';
-import BukuBesarPage from './finance/buku-besar/page';
-import NeracaSaldoPage from './finance/neraca-saldo/page';
-import MasterAccountPage from './finance/master-account/page';
-import ProjectPage from './project/page';
-import ProjectDetailPage from './project/detail/page';
-import ProjectFormPage from './project/form/page';
-import InventoryFormPage from './inventory/form/page';
-import ProposalPenawaranFormPage from './finance/proposal-penawaran/form/page';
-import RolesPage from './access-control/roles/page';
-import UsersPage from './access-control/users/page';
-import AccessRolesPage from './access-control/access-roles/page';
-import ModalSamplesPage from './components-ui/modal/page';
-import LoaderSamplesPage from './components-ui/loader/page';
-import RoleAccessPage from './components-ui/role-access/page';
-import SettingsPage from './settings/page';
-import NotificationsPage from './notifications/page';
-import { PlaceholderPage } from './pages/PlaceholderPage';
+
+const DashboardPage = lazy(() => import('@/dashboard/page'));
+const InventoryPage = lazy(() => import('./inventory/page'));
+const InvoicePage = lazy(() => import('./invoice/page'));
+const InvoiceCreatePage = lazy(() => import('./invoice/InvoiceCreatePage'));
+const ProfilePage = lazy(() => import('./profile/page'));
+const LoginPage = lazy(() => import('./login/page'));
+const SalesPage = lazy(() => import('./sales/page'));
+const ModalPage = lazy(() => import('./modal/page'));
+const HREmployeePage = lazy(() => import('./hr/employees/page'));
+const EmployeeDetailPage = lazy(() => import('./hr/employees/detail/page'));
+const EmployeeFormPage = lazy(() => import('./hr/employees/form/page'));
+const HRPositionsPage = lazy(() => import('./hr/positions/page'));
+const PositionFormPage = lazy(() => import('./hr/positions/form/page'));
+const HRLeavePage = lazy(() => import('./hr/leave/page'));
+const HRAttendancePage = lazy(() => import('./hr/attendance/page'));
+const HRLoansPage = lazy(() => import('./hr/loans/page'));
+const HRPayrollPage = lazy(() => import('./hr/payroll/page'));
+const CRMPage = lazy(() => import('./crm/page'));
+const ManufacturingPage = lazy(() => import('./manufacturing/page'));
+const KasKecilPage = lazy(() => import('./finance/kas-kecil/page'));
+const KasBankPage = lazy(() => import('./finance/kas-bank/page'));
+const CatatanPengeluaranPage = lazy(() => import('./finance/catatan-pengeluaran/page'));
+const CatatanPengeluaranPage = lazy(() => import('./finance/catatan-pengeluaran/page'));
+const CatatanPengeluaranPage = lazy(() => import('./finance/catatan-pengeluaran/page'));
+const JurnalMemorialPage = lazy(() => import('./finance/jurnal-memorial/page'));
+const VouchersPage = lazy(() => import('./finance/vouchers/page'));
+const AssetsPage = lazy(() => import('./finance/assets/page'));
+const AssetFormPage = lazy(() => import('./finance/assets/form/page'));
+const AssetDetailPage = lazy(() => import('./finance/assets/detail/page'));
+const AssetAcquisitionJournalsPage = lazy(() => import('./finance/asset-acquisition-journals/page'));
+const AssetDepreciationJournalsPage = lazy(() => import('./finance/asset-depreciation-journals/page'));
+const VoucherFormPage = lazy(() => import('./finance/vouchers/form/page'));
+const VoucherDetailPage = lazy(() => import('./finance/vouchers/detail/page'));
+const PurchaseOrderPage = lazy(() => import('./finance/purchase-orders/page'));
+const PurchaseOrderDetailPage = lazy(() => import('./finance/purchase-orders/detail/page'));
+const PurchaseOrderFormPage = lazy(() => import('./finance/purchase-orders/form/page'));
+const ClientsPage = lazy(() => import('./finance/clients/page'));
+const ClientDetailPage = lazy(() => import('./finance/clients/detail/page'));
+const ClientFormPage = lazy(() => import('./finance/clients/form/page'));
+const BASTPage = lazy(() => import('./finance/bast/page'));
+const PerpajakanPage = lazy(() => import('./finance/perpajakan/page'));
+const QuotationsPage = lazy(() => import('./finance/quotations/page'));
+const ProposalPenawaranPage = lazy(() => import('./finance/proposal-penawaran/page'));
+const NewTransactionPage = lazy(() => import('./finance/new-transaction/page'));
+const BukuBesarPage = lazy(() => import('./finance/buku-besar/page'));
+const AccountingPeriodsPage = lazy(() => import('./finance/accounting-periods/page'));
+const NeracaSaldoPage = lazy(() => import('./finance/neraca-saldo/page'));
+const MasterAccountPage = lazy(() => import('./finance/master-account/page'));
+const ProjectPage = lazy(() => import('./project/page'));
+const ProjectDetailPage = lazy(() => import('./project/detail/page'));
+const ProjectFormPage = lazy(() => import('./project/form/page'));
+const InventoryFormPage = lazy(() => import('./inventory/form/page'));
+const ProposalPenawaranFormPage = lazy(() => import('./finance/proposal-penawaran/form/page'));
+const RolesPage = lazy(() => import('./access-control/roles/page'));
+const UsersPage = lazy(() => import('./access-control/users/page'));
+const AccessRolesPage = lazy(() => import('./access-control/access-roles/page'));
+const ModalSamplesPage = lazy(() => import('./components-ui/modal/page'));
+const LoaderSamplesPage = lazy(() => import('./components-ui/loader/page'));
+const RoleAccessPage = lazy(() => import('./components-ui/role-access/page'));
+const SettingsPage = lazy(() => import('./settings/page'));
+const NotificationsPage = lazy(() => import('./notifications/page'));
+const PlaceholderPage = lazy(() => import('./pages/PlaceholderPage').then(m => ({ default: m.PlaceholderPage })));
+
+function PageLoader() {
+  return (
+    <div className="flex h-full w-full items-center justify-center min-h-[200px]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  );
+}
 
 function AppLayout() {
   return (
@@ -76,6 +96,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path='/login' element={<LoginPage />} />
           <Route element={<ProtectedRoute />}>
@@ -97,7 +118,7 @@ function App() {
               <Route path='/finance/assets/:id/edit' element={<AssetFormPage />} />
               <Route path='/finance/asset-acquisition-journals' element={<AssetAcquisitionJournalsPage />} />
               <Route path='/finance/asset-depreciation-journals' element={<AssetDepreciationJournalsPage />} />
-              <Route path='/finance/catatan-pengeluaran' element={<Navigate to='/finance/kas-kecil' replace />} />
+              <Route path='/finance/catatan-pengeluaran' element={<CatatanPengeluaranPage />} />
               <Route path='/finance/kas-kecil' element={<KasKecilPage />} />
               <Route path='/finance/kas-bank' element={<KasBankPage />} />
               <Route path='/finance/jurnal-memorial' element={<JurnalMemorialPage />} />
@@ -122,6 +143,7 @@ function App() {
               <Route path='/finance/proposal-penawaran/:id/edit' element={<ProposalPenawaranFormPage />} />
               <Route path='/finance/perpajakan' element={<PerpajakanPage />} />
               <Route path='/finance/bast' element={<BASTPage />} />
+              <Route path='/finance/accounting-periods' element={<AccountingPeriodsPage />} />
               <Route path='/finance/buku-besar' element={<BukuBesarPage />} />
               <Route path='/finance/neraca-saldo' element={<NeracaSaldoPage />} />
               <Route path='/finance/master-account' element={<MasterAccountPage />} />
@@ -139,6 +161,12 @@ function App() {
               <Route path='/hr/positions' element={<HRPositionsPage />} />
               <Route path='/hr/positions/create' element={<PositionFormPage />} />
               <Route path='/hr/positions/:id/edit' element={<PositionFormPage />} />
+              <Route path='/hr/leave' element={<HRLeavePage />} />
+              <Route path='/hr/attendance' element={<HRAttendancePage />} />
+              <Route path='/hr/loans' element={<HRLoansPage />} />
+              <Route path='/hr/payroll' element={<HRPayrollPage />} />
+              <Route path='/crm' element={<CRMPage />} />
+              <Route path='/manufacturing' element={<ManufacturingPage />} />
               <Route path='/profile' element={<ProfilePage />} />
               <Route path='/sales' element={<SalesPage />} />
               <Route path='/modal' element={<ModalPage />} />
@@ -167,6 +195,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+        </Suspense>
       </AuthProvider>
     </QueryClientProvider>
   );

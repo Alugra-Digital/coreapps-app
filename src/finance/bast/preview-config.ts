@@ -7,7 +7,7 @@ import { createConfig, fieldPresets } from '@/finance/components/preview/config-
 import type { PreviewConfig } from '@/finance/components/preview';
 import type { BASTFormValues } from './schema';
 
-export const bastPreviewConfig: PreviewConfig<BASTFormValues> = createConfig<BASTFormValues>({
+export const bastPreviewConfig: PreviewConfig<BASTFormValues> = createConfig({
   sections: [
     {
       title: 'Informasi Cover',

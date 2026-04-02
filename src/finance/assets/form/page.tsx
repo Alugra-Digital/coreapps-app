@@ -16,8 +16,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import AccountSelectorInline from '@/finance/components/AccountSelectorInline';
 import {
   Select,
   SelectContent,
@@ -99,7 +97,7 @@ export default function AssetFormPage() {
     const typeInfo = assetTypes?.find((t) => t.code === val);
     if (typeInfo) {
       form.setValue('usefulLifeMonths', typeInfo.usefulLifeMonths);
-      form.setValue('depreciationMethod', typeInfo.depreciationMethod as "SLM" | "WDV" | "MANUAL");
+      form.setValue('depreciationMethod', typeInfo.depreciationMethod);
     }
   };
 
@@ -174,7 +172,7 @@ export default function AssetFormPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0B] text-[#F0F0F0] p-4 sm:p-6 lg:p-10">
+    <div className="min-h-screen bg-[#0A0A0B] text-[#F0F0F0] p-6 lg:p-10">
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <Button
@@ -186,7 +184,7 @@ export default function AssetFormPage() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#F0F0F0]">
+            <h1 className="text-4xl font-extrabold tracking-tight text-[#F0F0F0]">
               {isEdit ? 'Edit Aset' : 'Tambah Aset Baru'}
             </h1>
             <p className="text-[#6B6B75] text-sm font-medium">
@@ -331,10 +329,12 @@ export default function AssetFormPage() {
                   <FormItem>
                     <FormLabel className="text-[#F0F0F0]">Harga Perolehan (Rp)</FormLabel>
                     <FormControl>
-                      <CurrencyInput
-                        value={field.value ?? 0}
-                        onChange={(val) => field.onChange(val)}
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1000}
                         className="bg-[#111113] border-[#1E1E22] text-[#F0F0F0] focus:ring-1 focus:ring-[#F5A623]"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -444,10 +444,12 @@ export default function AssetFormPage() {
                   <FormItem>
                     <FormLabel className="text-[#F0F0F0]">Nilai Residu (Rp)</FormLabel>
                     <FormControl>
-                      <CurrencyInput
-                        value={field.value ?? 0}
-                        onChange={(val) => field.onChange(val)}
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1000}
                         className="bg-[#111113] border-[#1E1E22] text-[#F0F0F0] focus:ring-1 focus:ring-[#F5A623]"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -466,11 +468,11 @@ export default function AssetFormPage() {
                   <FormItem>
                     <FormLabel className="text-[#F0F0F0]">Akun Aset Tetap</FormLabel>
                     <FormControl>
-                      <AccountSelectorInline
-                        value={field.value ? { code: field.value, name: '' } : null}
-                        onChange={(account) => field.onChange(account?.code ?? '')}
-                        placeholder="Pilih akun aset tetap..."
-                        inputClassName="!h-10 text-sm"
+                      <Input
+                        placeholder="Mis: 1-2100"
+                        className="bg-[#111113] border-[#1E1E22] text-[#F0F0F0] placeholder:text-[#6B6B75] focus:ring-1 focus:ring-[#F5A623]"
+                        {...field}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                   </FormItem>
@@ -479,11 +481,11 @@ export default function AssetFormPage() {
                   <FormItem>
                     <FormLabel className="text-[#F0F0F0]">Akun Beban Penyusutan</FormLabel>
                     <FormControl>
-                      <AccountSelectorInline
-                        value={field.value ? { code: field.value, name: '' } : null}
-                        onChange={(account) => field.onChange(account?.code ?? '')}
-                        placeholder="Pilih akun beban penyusutan..."
-                        inputClassName="!h-10 text-sm"
+                      <Input
+                        placeholder="Mis: 5-1100"
+                        className="bg-[#111113] border-[#1E1E22] text-[#F0F0F0] placeholder:text-[#6B6B75] focus:ring-1 focus:ring-[#F5A623]"
+                        {...field}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                   </FormItem>
@@ -492,11 +494,11 @@ export default function AssetFormPage() {
                   <FormItem>
                     <FormLabel className="text-[#F0F0F0]">Akun Akumulasi Penyusutan</FormLabel>
                     <FormControl>
-                      <AccountSelectorInline
-                        value={field.value ? { code: field.value, name: '' } : null}
-                        onChange={(account) => field.onChange(account?.code ?? '')}
-                        placeholder="Pilih akun akumulasi penyusutan..."
-                        inputClassName="!h-10 text-sm"
+                      <Input
+                        placeholder="Mis: 1-2200"
+                        className="bg-[#111113] border-[#1E1E22] text-[#F0F0F0] placeholder:text-[#6B6B75] focus:ring-1 focus:ring-[#F5A623]"
+                        {...field}
+                        value={field.value ?? ''}
                       />
                     </FormControl>
                   </FormItem>
