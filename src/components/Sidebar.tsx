@@ -19,8 +19,6 @@ import {
   TrendingUp,
   Factory,
   BookOpen,
-  BookOpen,
-  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -196,20 +194,6 @@ export function Sidebar({ className }: SidebarProps) {
             label="Catatan Pengeluaran"
             active={location.pathname === '/finance/catatan-pengeluaran'}
           />
-        </div>
-
-        {/* Finance Reports */}
-        <div className="flex flex-col gap-1">
-          <div className="px-3 mb-2">
-            <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Finance Reports</h2>
-          </div>
-          <SidebarItem to="/finance/catatan-pengeluaran" icon={<BookOpen className="h-[18px] w-[18px]" />} label="Catatan Pengeluaran" active={location.pathname === '/finance/catatan-pengeluaran'} />
-        </div>
-
-        {/* Finance Reports */}
-        <div className="flex flex-col gap-1">
-          <div className="px-3 mb-2"><h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Finance Reports</h2></div>
-          <SidebarItem to="/finance/catatan-pengeluaran" icon={<BookOpen className="h-[18px] w-[18px]" />} label="Catatan Pengeluaran" active={location.pathname === '/finance/catatan-pengeluaran'} />
         </div>
 
         {/* CRM & Manufacturing Section */}
