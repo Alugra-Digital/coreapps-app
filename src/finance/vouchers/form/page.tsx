@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -38,6 +38,7 @@ import { voucherFormSchema, type VoucherFormValues } from '../schema';
 import AccountSelectorInline from '@/finance/components/AccountSelectorInline';
 import { FinancePreviewDialog, usePreviewForm } from '@/finance/components/preview';
 import { vouchersPreviewConfig } from '../preview-config';
+import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
 
 const now = new Date();
 
@@ -49,6 +50,7 @@ const formatRp = (val: number) =>
 export default function VoucherFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
+  const location = useLocation();
   const isEdit = !!id;
 
   const { data: voucher } = useVoucherById(id ? Number(id) : undefined);
@@ -57,8 +59,11 @@ export default function VoucherFormPage() {
   const createMutation = useCreateVoucher();
   const updateMutation = useUpdateVoucher();
 
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
+  // Use month/year from navigation state (set by vouchers list) or fall back to current date
+  const stateMonth = (location.state as { month?: number; year?: number } | null)?.month;
+  const stateYear = (location.state as { month?: number; year?: number } | null)?.year;
+  const currentYear = stateYear ?? now.getFullYear();
+  const currentMonth = stateMonth ?? (now.getMonth() + 1);
   const activePeriod = periods.find((p) => p.year === currentYear && p.month === currentMonth);
 
   const form = useForm<VoucherFormValues>({
@@ -79,6 +84,23 @@ export default function VoucherFormPage() {
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'lines' });
 
   const watchedLines = form.watch('lines');
+
+  // voucherNumber is not part of the form schema — it is assigned by the backend.
+  // For edit flows it comes from the loaded voucher object; for new vouchers it is undefined.
+  const voucherNumValue = voucher?.voucherNumber;
+
+  const voucherValidationLines: ValidationLine[] = (watchedLines ?? []).map((l) => ({
+    accountNumber: l.accountNumber ?? '',
+    accountName:   l.accountName   ?? '',
+    debit:         Number(l.debit)   || 0,
+    credit:        Number(l.credit)  || 0,
+  }));
+
+  const { handlePreview: handleValidatedPreview } = useFinanceValidation({
+    lines:        voucherValidationLines,
+    periodStatus: activePeriod?.status,
+  });
+
   const totalDebit = watchedLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
   const totalCredit = watchedLines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.001;
@@ -88,6 +110,8 @@ export default function VoucherFormPage() {
     form,
     onSubmit: async (values) => {
       // This is called after confirming in preview dialog
+      const parseLines = (lines: typeof values.lines) =>
+        (lines || []).map(l => ({ ...l, debit: Number(l.debit), credit: Number(l.credit) }));
       if (isEdit) {
         await updateMutation.mutateAsync({
           id: Number(id),
@@ -98,7 +122,7 @@ export default function VoucherFormPage() {
             paymentMethod: values.paymentMethod || null,
             receivedBy: values.receivedBy || null,
             attachmentUrl: values.attachmentUrl || null,
-            lines: values.lines,
+            lines: parseLines(values.lines),
           },
         });
         toast.success('Voucher berhasil diperbarui');
@@ -108,7 +132,7 @@ export default function VoucherFormPage() {
           const p = await createPeriodMutation.mutateAsync({ year: currentYear, month: currentMonth });
           periodId = p.id;
         }
-        await createMutation.mutateAsync({ ...values, periodId });
+        await createMutation.mutateAsync({ ...values, periodId, lines: parseLines(values.lines), attachmentUrl: values.attachmentUrl || null });
         toast.success('Voucher berhasil dibuat');
       }
       navigate('/finance/vouchers');
@@ -470,7 +494,13 @@ export default function VoucherFormPage() {
             <Button
               type="button"
               variant="secondary"
-              onClick={previewForm.handlePreview}
+              onClick={() =>
+                handleValidatedPreview(previewForm.handlePreview, {
+                  periodId:    activePeriod?.id,
+                  voucherCode: voucherNumValue ?? undefined,
+                  type:        'VOUCHER',
+                })
+              }
               className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22]"
             >
               <Eye className="w-4 h-4 mr-2" />
