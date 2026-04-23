@@ -70,6 +70,7 @@ import { formatIDR } from '@/lib/export';
 import { exportToExcel, type ExcelColumn } from '@/lib/export';
 import { kasBankPreviewConfig } from './preview-config';
 import { FileText } from 'lucide-react';
+import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -125,6 +126,19 @@ export default function KasBankPage() {
   const inflowValue = form.watch('inflow');
   const outflowValue = form.watch('outflow');
   const linesValue = form.watch('lines');
+  const voucherCodeValue = form.watch('voucherCode');
+
+  const validationLines: ValidationLine[] = (linesValue ?? []).map((l) => ({
+    accountNumber: l.accountNumber ?? '',
+    accountName:   l.accountName ?? '',
+    debit:         Number(l.debit)   || 0,
+    credit:        Number(l.credit)  || 0,
+  }));
+
+  const { handlePreview: handleValidatedPreview } = useFinanceValidation({
+    lines:        validationLines,
+    periodStatus: activePeriod?.status,
+  });
 
   // Calculate totals from lines
   const totalLinesDebit = linesValue?.reduce((sum, line) => sum + (line.debit || 0), 0) || 0;
@@ -152,15 +166,28 @@ export default function KasBankPage() {
             date: values.date,
             coaAccount: values.coaAccount,
             description: values.description,
-            inflow: values.inflow,
-            outflow: values.outflow,
+            inflow: Number(values.inflow),
+            outflow: Number(values.outflow),
             reference: values.reference,
-            lines: values.lines,
+            lines: (values.lines || []).map(l => ({
+              ...l,
+              debit: Number(l.debit),
+              credit: Number(l.credit),
+            })),
           },
         });
         toast.success('Transaksi berhasil diperbarui');
       } else {
-        await createMutation.mutateAsync(values);
+        await createMutation.mutateAsync({
+          ...values,
+          inflow: Number(values.inflow),
+          outflow: Number(values.outflow),
+          lines: (values.lines || []).map(l => ({
+            ...l,
+            debit: Number(l.debit),
+            credit: Number(l.credit),
+          })),
+        });
         toast.success('Transaksi berhasil ditambahkan');
       }
       setDialogOpen(false);
@@ -829,7 +856,13 @@ export default function KasBankPage() {
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={previewForm.handlePreview}
+                    onClick={() =>
+                      handleValidatedPreview(previewForm.handlePreview, {
+                        periodId:    activePeriod?.id,
+                        voucherCode: voucherCodeValue ?? undefined,
+                        type:        'KAS_BANK',
+                      })
+                    }
                     className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22]"
                   >
                     <Eye className="w-4 h-4 mr-2" />
