@@ -52,6 +52,7 @@ const NewTransactionPage = lazy(() => import('./finance/new-transaction/page'));
 const BukuBesarPage = lazy(() => import('./finance/buku-besar/page'));
 const AccountingPeriodsPage = lazy(() => import('./finance/accounting-periods/page'));
 const NeracaSaldoPage = lazy(() => import('./finance/neraca-saldo/page'));
+const AuditPage = lazy(() => import('./finance/audit/page'));
 const MasterAccountPage = lazy(() => import('./finance/master-account/page'));
 const ProjectPage = lazy(() => import('./project/page'));
 const ProjectDetailPage = lazy(() => import('./project/detail/page'));
@@ -144,6 +145,7 @@ function App() {
               <Route path='/finance/accounting-periods' element={<AccountingPeriodsPage />} />
               <Route path='/finance/buku-besar' element={<BukuBesarPage />} />
               <Route path='/finance/neraca-saldo' element={<NeracaSaldoPage />} />
+              <Route path='/finance/audit' element={<AuditPage />} />
               <Route path='/finance/master-account' element={<MasterAccountPage />} />
               <Route path='/projects' element={<ProjectPage />} />
               <Route path='/projects/create' element={<ProjectFormPage />} />

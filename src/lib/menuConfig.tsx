@@ -44,6 +44,7 @@ export const ALL_PERMISSION_KEYS: string[] = [
   "finance.asset-depreciation-journals",
   "finance.buku-besar",
   "finance.neraca-saldo",
+  "finance.audit-laporan",
   "assets",
   "projects",
   "notifications",
@@ -92,6 +93,7 @@ export const MAIN_NAV_MENU: MenuItemConfig[] = [
       // Pembukuan (Module 6D)
       { permissionKey: "finance.buku-besar", path: "/finance/buku-besar", label: "Buku Besar" },
       { permissionKey: "finance.neraca-saldo", path: "/finance/neraca-saldo", label: "Neraca Saldo" },
+      { permissionKey: "finance.audit-laporan", path: "/finance/audit", label: "Audit Laporan" },
     ],
   },
   {
