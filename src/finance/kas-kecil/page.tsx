@@ -70,6 +70,7 @@ import { kasKecilFormSchema, type KasKecilFormValues } from './schema';
 import type { KasKecilTransaction, CreateKasKecilInput } from './types';
 import { exportToExcel, type ExcelColumn } from '@/lib/export';
 import { kasKecilPreviewConfig } from './preview-config';
+import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -137,6 +138,26 @@ export default function KasKecilPage() {
 
   // Watch mode for conditional fields
   const mode = form.watch('mode');
+
+  const debitValue      = form.watch('debit');
+  const creditValue     = form.watch('credit');
+  const kkVoucherCode   = form.watch('voucherCode');
+  const kkAccountNumber = (form.watch('accountNumber') as string | undefined) ?? selectedAccount?.code ?? '';
+
+  const kkValidationLines: ValidationLine[] = [
+    {
+      accountNumber: kkAccountNumber,
+      debit:  Number(debitValue)  || 0,
+      credit: Number(creditValue) || 0,
+    },
+  ];
+
+  const { handlePreview: handleValidatedPreview } = useFinanceValidation({
+    lines:        kkValidationLines,
+    periodStatus: activePeriod?.status,
+    singleEntry:  true,
+  });
+
   const selectedPeriodId = form.watch('saldoFromPeriodId');
 
   // Handle saldo period selection
@@ -249,8 +270,8 @@ export default function KasKecilPage() {
           input: {
             date: values.date,
             description: values.description,
-            debit: values.debit,
-            credit: values.credit,
+            debit: Number(values.debit),
+            credit: Number(values.credit),
             attachmentUrl: values.attachmentUrl,
             accountNumber: values.accountNumber,
             accountName: values.accountName,
@@ -263,12 +284,12 @@ export default function KasKecilPage() {
           periodId: values.periodId,
           date: values.date,
           description: values.description,
-          debit: values.debit,
-          credit: values.credit,
+          debit: Number(values.debit),
+          credit: Number(values.credit),
           attachmentUrl: values.attachmentUrl,
           accountNumber: values.accountNumber,
           accountName: values.accountName,
-          saldoFromPeriodId: values.mode === 'saldoAwal' ? values.saldoFromPeriodId : null,
+          saldoFromPeriodId: values.mode === 'saldoAwal' ? values.saldoFromPeriodId : undefined,
           voucherCode: values.voucherCode,
         };
         await createMutation.mutateAsync(createInput);
@@ -793,7 +814,13 @@ export default function KasKecilPage() {
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={previewForm.handlePreview}
+                    onClick={() =>
+                      handleValidatedPreview(previewForm.handlePreview, {
+                        periodId:    activePeriod?.id,
+                        voucherCode: kkVoucherCode ?? undefined,
+                        type:        'KAS_KECIL',
+                      })
+                    }
                     className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22]"
                   >
                     <Eye className="w-4 h-4 mr-2" />
