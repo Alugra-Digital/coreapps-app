@@ -71,6 +71,7 @@ import type { KasKecilTransaction, CreateKasKecilInput } from './types';
 import { exportToExcel, type ExcelColumn } from '@/lib/export';
 import { kasKecilPreviewConfig } from './preview-config';
 import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
+import { ScanStrukButton, type ScanStrukResult } from '@/finance/components/ScanStrukButton';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -313,6 +314,19 @@ export default function KasKecilPage() {
     ? summary.closingBalance - summary.totalDebit + summary.totalCredit
     : 0;
   const isPeriodClosed = activePeriod && activePeriod.status !== 'OPEN';
+
+  const handleKasKecilScanApply = (result: ScanStrukResult) => {
+    form.setValue('date', result.date);
+    form.setValue('description', result.description);
+    form.setValue('credit', result.amount);
+    form.setValue('debit', 0);
+    form.setValue('accountNumber', result.suggestedAccount.number);
+    form.setValue('accountName', result.suggestedAccount.name);
+    setSelectedAccount({
+      code: result.suggestedAccount.number,
+      name: result.suggestedAccount.name,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0B] text-[#F0F0F0] p-6 lg:p-10">
@@ -568,6 +582,9 @@ export default function KasKecilPage() {
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="flex justify-end mb-2">
+                  <ScanStrukButton onApply={handleKasKecilScanApply} />
+                </div>
                 {/* Voucher Code - Editable field, shown for both create and edit */}
                 <FormField
                   control={form.control}

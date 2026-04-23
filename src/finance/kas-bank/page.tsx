@@ -71,6 +71,7 @@ import { exportToExcel, type ExcelColumn } from '@/lib/export';
 import { kasBankPreviewConfig } from './preview-config';
 import { FileText } from 'lucide-react';
 import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
+import { ScanStrukButton, type ScanStrukResult } from '@/finance/components/ScanStrukButton';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -270,6 +271,18 @@ export default function KasBankPage() {
     ? summary.closingBalance - summary.totalInflow + summary.totalOutflow
     : 0;
   const isPeriodClosed = activePeriod && activePeriod.status !== 'OPEN';
+
+  const handleKasBankScanApply = (result: ScanStrukResult) => {
+    form.setValue('date', result.date);
+    form.setValue('description', result.description);
+    form.setValue('outflow', result.amount);
+    if (fields.length > 0) {
+      form.setValue('lines.0.accountNumber', result.suggestedAccount.number);
+      form.setValue('lines.0.accountName', result.suggestedAccount.name);
+      form.setValue('lines.0.debit', result.amount);
+      form.setValue('lines.0.credit', 0);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0B] text-[#F0F0F0] p-6 lg:p-10">
@@ -515,6 +528,9 @@ export default function KasBankPage() {
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="flex justify-end mb-2">
+                  <ScanStrukButton onApply={handleKasBankScanApply} />
+                </div>
                 {/* Voucher Code - Editable field, shown for both create and edit */}
                 <FormField
                   control={form.control}
