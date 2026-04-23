@@ -21,7 +21,7 @@ export const voucherFormSchema = z.object({
   description: z.string().min(1, 'Keterangan wajib diisi'),
   paymentMethod: z.string().optional().nullable(),
   receivedBy: z.string().optional().nullable(),
-  attachmentUrl: z.string().url('URL tidak valid').optional().nullable(),
+  attachmentUrl: z.union([z.string().url('URL tidak valid'), z.literal(''), z.null()]).optional(),
   lines: z.array(voucherLineSchema).min(1, 'Minimal 1 baris wajib diisi'),
 }).refine(
   (d) => {

@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { cn } from '@/lib/utils';
@@ -43,19 +43,20 @@ function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchAccounts = async (search = '') => {
+  const fetchAccounts = useCallback(async (search = '') => {
     setLoading(true);
     try {
       const query = search ? `?search=${encodeURIComponent(search)}` : '';
-      const data = await api.get<{ accounts: Account[] }>(`/api/accounting/accounts${query}`);
-      setAccounts(data.accounts || []);
+      const data = await api.get<Account[] | { accounts: Account[] }>(`/api/accounting/accounts${query}`);
+      const list = Array.isArray(data) ? data : (data.accounts || []);
+      setAccounts(list);
     } catch (error) {
       console.error('Failed to fetch accounts:', error);
       setAccounts([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return { accounts, loading, fetchAccounts };
 }

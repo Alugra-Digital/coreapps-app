@@ -175,7 +175,7 @@ export function useFinanceValidation({
     warnings: [],
   });
 
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   // Stable key so we only re-run when lines actually change
   const linesKey = useMemo(() => JSON.stringify(lines), [lines]);
 

@@ -12,7 +12,7 @@ export interface PreviewField<T = unknown> {
   format?: 'row' | 'column' | 'section';
   options?: { label: string; value: unknown }[];
   enumLabels?: Record<string, string>;
-  formatter?: (value: unknown) => string;
+  formatter?: (value: unknown, data?: T) => string;
   condition?: (data: T) => boolean;
 }
 

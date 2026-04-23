@@ -152,7 +152,7 @@ export default function VouchersPage() {
             />
             <Button
               size="sm"
-              onClick={() => navigate('/finance/vouchers/create')}
+              onClick={() => navigate('/finance/vouchers/create', { state: { month, year } })}
               disabled={!!isPeriodClosed}
               className="bg-[#F5A623] hover:bg-[#D98E1C] text-black font-bold h-12 px-8 rounded-xl shadow-lg shadow-[#F5A623]/10 transition-all active:scale-95"
             >

@@ -48,7 +48,7 @@ export function PreviewFieldRenderer<T>({ field, data }: PreviewFieldRendererPro
       break;
     }
     default:
-      displayValue = field.formatter ? field.formatter(value) : formatters.text(value);
+      displayValue = field.formatter ? field.formatter(value, data) : formatters.text(value);
   }
 
   // Conditional rendering based on format

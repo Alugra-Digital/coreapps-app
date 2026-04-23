@@ -3,8 +3,8 @@ import { z } from 'zod';
 const kasBankTransactionLineSchema = z.object({
   accountNumber: z.string().min(1, 'Nomor akun wajib diisi'),
   accountName: z.string().optional(),
-  debit: z.number().min(0, 'Debit tidak boleh negatif').default(0),
-  credit: z.number().min(0, 'Kredit tidak boleh negatif').default(0),
+  debit: z.coerce.number().min(0, 'Debit tidak boleh negatif').default(0),
+  credit: z.coerce.number().min(0, 'Kredit tidak boleh negatif').default(0),
   description: z.string().optional(),
 });
 
