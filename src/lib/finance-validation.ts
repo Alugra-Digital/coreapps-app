@@ -1,5 +1,5 @@
 // coreapps-app/src/lib/finance-validation.ts
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api/client';
 
@@ -130,6 +130,8 @@ export function validateJournalEntry(
 
 const ERROR_TOAST_ID = 'finance-val-error';
 const WARN_TOAST_ID = 'finance-val-warning';
+const BE_ERROR_TOAST_ID = 'finance-be-val-error';
+const BE_WARN_TOAST_ID = 'finance-be-val-warning';
 
 function applyToasts(result: ValidationResult) {
   if (result.errors.length > 0) {
@@ -175,7 +177,7 @@ export function useFinanceValidation({
 
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
   // Stable key so we only re-run when lines actually change
-  const linesKey = JSON.stringify(lines);
+  const linesKey = useMemo(() => JSON.stringify(lines), [lines]);
 
   // Debounced real-time validation
   useEffect(() => {
@@ -194,6 +196,8 @@ export function useFinanceValidation({
     () => () => {
       toast.dismiss(ERROR_TOAST_ID);
       toast.dismiss(WARN_TOAST_ID);
+      toast.dismiss(BE_ERROR_TOAST_ID);
+      toast.dismiss(BE_WARN_TOAST_ID);
     },
     [],
   );
@@ -202,6 +206,7 @@ export function useFinanceValidation({
   const triggerValidation = useCallback((): ValidationResult => {
     const result = validateJournalEntry(lines, { periodStatus, singleEntry });
     setValidationResult(result);
+    applyToasts(result);
     return result;
   }, [lines, periodStatus, singleEntry]);
 
@@ -218,7 +223,6 @@ export function useFinanceValidation({
   const handlePreview = useCallback(
     async (onValid: () => void, bePayload?: BeValidatePayload) => {
       const feResult = triggerValidation();
-      applyToasts(feResult);
       if (!feResult.valid) return;
 
       if (bePayload?.periodId) {
@@ -231,12 +235,12 @@ export function useFinanceValidation({
 
           if (!beResult.valid) {
             beResult.errors.forEach((e: string) =>
-              toast.error(e, { id: `be-val-${e}`, duration: Infinity }),
+              toast.error(e, { id: BE_ERROR_TOAST_ID, duration: Infinity }),
             );
             return;
           }
           beResult.warnings?.forEach((w: string) =>
-            toast.warning(w, { id: `be-warn-${w}`, duration: 5000 }),
+            toast.warning(w, { id: BE_WARN_TOAST_ID, duration: 5000 }),
           );
         } catch {
           // BE unreachable — allow FE-validated submit to proceed
