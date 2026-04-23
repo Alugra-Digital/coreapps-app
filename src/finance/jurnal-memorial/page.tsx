@@ -62,6 +62,7 @@ import { useAccountingPeriods, useCreatePeriod } from '@/hooks/useAccountingPeri
 import { jurnalMemorialFormSchema, type JurnalMemorialFormValues } from './schema';
 import type { JurnalMemorial } from './types';
 import { jurnalMemorialPreviewConfig } from './preview-config';
+import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
 
 const formatRp = (val: string | number) =>
   `Rp ${Number(val).toLocaleString('id-ID', { minimumFractionDigits: 0 })}`;
@@ -111,6 +112,19 @@ export default function JurnalMemorialPage() {
 
   const totalDebit = fields.reduce((s, _, i) => s + (Number(form.watch(`lines.${i}.debit`)) || 0), 0);
   const totalCredit = fields.reduce((s, _, i) => s + (Number(form.watch(`lines.${i}.credit`)) || 0), 0);
+
+  const validationLines: ValidationLine[] = fields.map((_, i) => ({
+    accountNumber: form.watch(`lines.${i}.accountNumber`) ?? '',
+    accountName:   form.watch(`lines.${i}.accountName`)   ?? '',
+    debit:         Number(form.watch(`lines.${i}.debit`))   || 0,
+    credit:        Number(form.watch(`lines.${i}.credit`))  || 0,
+  }));
+
+  const { handlePreview: handleValidatedPreview } = useFinanceValidation({
+    lines:        validationLines,
+    periodStatus: activePeriod?.status,
+  });
+
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.001;
 
   // Preview form hook - manages preview dialog flow
@@ -118,18 +132,20 @@ export default function JurnalMemorialPage() {
     form,
     onSubmit: async (values) => {
       // This is called after confirming in preview dialog
+      const parseLines = (lines: typeof values.lines) =>
+        (lines || []).map(l => ({ ...l, debit: Number(l.debit), credit: Number(l.credit) }));
       if (editTarget) {
         await updateMutation.mutateAsync({
           id: editTarget.id,
           input: {
             date: values.date,
             description: values.description,
-            lines: values.lines,
+            lines: parseLines(values.lines),
           },
         });
         toast.success('Jurnal berhasil diperbarui');
       } else {
-        await createMutation.mutateAsync(values);
+        await createMutation.mutateAsync({ ...values, lines: parseLines(values.lines) });
         toast.success('Jurnal berhasil dibuat');
       }
       setDialogOpen(false);
@@ -664,7 +680,11 @@ export default function JurnalMemorialPage() {
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={previewForm.handlePreview}
+                    onClick={() =>
+                      handleValidatedPreview(previewForm.handlePreview, {
+                        periodId: activePeriod?.id,
+                      })
+                    }
                     className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22]"
                   >
                     <Eye className="w-4 h-4 mr-2" />
