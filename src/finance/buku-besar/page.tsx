@@ -75,7 +75,7 @@ export default function BukuBesarPage() {
     const totalPeriodDebit = entries.reduce((sum, e) => sum + Number(e.debit || 0), 0);
     const totalPeriodCredit = entries.reduce((sum, e) => sum + Number(e.credit || 0), 0);
 
-    const handleExport = (format: 'excel' | 'pdf') => {
+    const handleExport = async (format: 'excel' | 'pdf') => {
         if (entries.length === 0) {
             toast.error('Tidak ada data untuk di-export');
             return;
@@ -109,10 +109,11 @@ export default function BukuBesarPage() {
             exportToExcel(exportData, columns as ExcelColumn[], { filename });
             toast.success('Data berhasil di-export ke Excel');
         } else {
-            exportToPDF(exportData, columns as PDFColumn[], {
+            await exportToPDF(exportData, columns as PDFColumn[], {
                 filename,
                 title: 'BUKU BESAR (GENERAL LEDGER)',
                 subtitle: `Periode: ${monthName} ${year}`,
+                landscape: true,
             });
             toast.success('Data berhasil di-export ke PDF');
         }

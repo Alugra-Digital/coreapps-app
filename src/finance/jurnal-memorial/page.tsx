@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, CheckCircle2, FileText, FileCheck, FileEdit, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, CheckCircle2, FileText, FileCheck, FileEdit, Eye, Download } from 'lucide-react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -63,6 +63,12 @@ import { jurnalMemorialFormSchema, type JurnalMemorialFormValues } from './schem
 import type { JurnalMemorial } from './types';
 import { jurnalMemorialPreviewConfig } from './preview-config';
 import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
+import { exportToExcel, exportToPDF, type ExcelColumn, type PDFColumn } from '@/lib/export';
+
+const MONTHS = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
 
 const formatRp = (val: string | number) =>
   `Rp ${Number(val).toLocaleString('id-ID', { minimumFractionDigits: 0 })}`;
@@ -242,7 +248,7 @@ export default function JurnalMemorialPage() {
             </h1>
             <p className="text-[#6B6B75] text-sm font-medium">Jurnal penyesuaian per periode</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <PeriodSelector
               year={year}
               month={month}
@@ -251,6 +257,82 @@ export default function JurnalMemorialPage() {
                 setMonth(m);
               }}
             />
+            {/* Excel Export */}
+            <Button
+              variant="outline"
+              disabled={journals.length === 0}
+              onClick={() => {
+                const monthName = MONTHS[month - 1];
+                const filename = `Jurnal-Memorial-${monthName}-${year}`;
+                // Flatten journal lines for export
+                const exportData = journals.flatMap(j =>
+                  j.lines.map(l => ({
+                    nomorJurnal: j.journalCode,
+                    tanggal: j.date,
+                    keterangan: j.description,
+                    status: j.status,
+                    akun: `${l.accountNumber} - ${l.accountName}`,
+                    debit: Number(l.debit) > 0 ? formatRp(l.debit) : '—',
+                    kredit: Number(l.credit) > 0 ? formatRp(l.credit) : '—',
+                  }))
+                );
+                const columns: ExcelColumn[] = [
+                  { header: 'No. Jurnal', key: 'nomorJurnal', width: 16 },
+                  { header: 'Tanggal', key: 'tanggal', width: 14 },
+                  { header: 'Keterangan', key: 'keterangan', width: 35 },
+                  { header: 'Status', key: 'status', width: 10 },
+                  { header: 'Akun', key: 'akun', width: 30 },
+                  { header: 'Debit', key: 'debit', width: 18 },
+                  { header: 'Kredit', key: 'kredit', width: 18 },
+                ];
+                exportToExcel(exportData, columns, { filename });
+                toast.success('Data berhasil di-export ke Excel');
+              }}
+              className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22] h-12 px-6 rounded-xl"
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              Excel
+            </Button>
+            {/* PDF Export */}
+            <Button
+              variant="outline"
+              disabled={journals.length === 0}
+              onClick={async () => {
+                const monthName = MONTHS[month - 1];
+                const filename = `Jurnal-Memorial-${monthName}-${year}`;
+                const exportData = journals.flatMap(j =>
+                  j.lines.map(l => ({
+                    nomorJurnal: j.journalCode,
+                    tanggal: j.date,
+                    keterangan: j.description,
+                    status: j.status,
+                    akun: `${l.accountNumber} - ${l.accountName}`,
+                    debit: Number(l.debit) > 0 ? formatRp(l.debit) : '—',
+                    kredit: Number(l.credit) > 0 ? formatRp(l.credit) : '—',
+                  }))
+                );
+                const columns: PDFColumn[] = [
+                  { header: 'No. Jurnal', key: 'nomorJurnal', width: 24 },
+                  { header: 'Tanggal', key: 'tanggal', width: 20 },
+                  { header: 'Keterangan', key: 'keterangan' },
+                  { header: 'Status', key: 'status', width: 14 },
+                  { header: 'Akun', key: 'akun', width: 42 },
+                  { header: 'Debit', key: 'debit', width: 26 },
+                  { header: 'Kredit', key: 'kredit', width: 26 },
+                ];
+                await exportToPDF(exportData, columns, {
+                  filename,
+                  title: 'JURNAL MEMORIAL',
+                  subtitle: `Periode: ${monthName} ${year}`,
+                  landscape: true,
+                });
+                toast.success('Data berhasil di-export ke PDF');
+              }}
+              className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22] h-12 px-6 rounded-xl"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              PDF
+            </Button>
             <Button
               onClick={openCreate}
               disabled={!!isPeriodClosed}

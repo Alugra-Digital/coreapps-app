@@ -67,7 +67,7 @@ import { useAccountingPeriods, useCreatePeriod, useGenerateNextNumber } from '@/
 import { kasBankFormSchema, type KasBankFormValues } from './schema';
 import type { KasBankTransaction } from './types';
 import { formatIDR } from '@/lib/export';
-import { exportToExcel, type ExcelColumn } from '@/lib/export';
+import { exportToExcel, exportToPDF, type ExcelColumn, type PDFColumn } from '@/lib/export';
 import { kasBankPreviewConfig } from './preview-config';
 import { FileText } from 'lucide-react';
 import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
@@ -345,7 +345,48 @@ export default function KasBankPage() {
               className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22] h-12 px-6 rounded-xl"
             >
               <FileText className="w-4 h-4 mr-1" />
-              Export Excel
+              Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (transactions.length === 0) {
+                  toast.error('Tidak ada data untuk di-export');
+                  return;
+                }
+                const monthName = MONTHS[month - 1];
+                const filename = `Kas-Bank-${monthName}-${year}`;
+                const exportData = transactions.map(tx => ({
+                  kode: tx.transactionCode,
+                  tanggal: tx.date,
+                  akunCOA: tx.coaAccount,
+                  keterangan: tx.description,
+                  masuk: Number(tx.inflow) > 0 ? formatIDR(tx.inflow) : '—',
+                  keluar: Number(tx.outflow) > 0 ? formatIDR(tx.outflow) : '—',
+                  saldo: formatIDR(tx.runningBalance),
+                }));
+                const columns: PDFColumn[] = [
+                  { header: 'Kode', key: 'kode', width: 22 },
+                  { header: 'Tanggal', key: 'tanggal', width: 22 },
+                  { header: 'Akun COA', key: 'akunCOA', width: 22 },
+                  { header: 'Keterangan', key: 'keterangan' },
+                  { header: 'Masuk', key: 'masuk', width: 28 },
+                  { header: 'Keluar', key: 'keluar', width: 28 },
+                  { header: 'Saldo', key: 'saldo', width: 28 },
+                ];
+                await exportToPDF(exportData, columns, {
+                  filename,
+                  title: 'BUKU KAS BANK',
+                  subtitle: `Periode: ${monthName} ${year}`,
+                  landscape: true,
+                });
+                toast.success('Data berhasil di-export ke PDF');
+              }}
+              disabled={isLoading || transactions.length === 0}
+              className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22] h-12 px-6 rounded-xl"
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              PDF
             </Button>
             <Button
               onClick={openCreate}

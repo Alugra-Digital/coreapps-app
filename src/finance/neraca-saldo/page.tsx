@@ -48,7 +48,7 @@ export default function NeracaSaldoPage() {
     const accounts = data?.accounts ?? [];
     const totals = data?.totals ?? { debit: 0, credit: 0, openingBalance: 0, closingBalance: 0, balanced: true };
 
-    const handleExport = (format: 'excel' | 'pdf') => {
+    const handleExport = async (format: 'excel' | 'pdf') => {
         if (accounts.length === 0) {
             toast.error('Tidak ada data untuk di-export');
             return;
@@ -80,10 +80,11 @@ export default function NeracaSaldoPage() {
             exportToExcel(exportData, columns as ExcelColumn[], { filename });
             toast.success('Data berhasil di-export ke Excel');
         } else {
-            exportToPDF(exportData, columns as PDFColumn[], {
+            await exportToPDF(exportData, columns as PDFColumn[], {
                 filename,
                 title: 'NERACA SALDO (TRIAL BALANCE)',
                 subtitle: `Periode: ${monthName} ${year} ${totals.balanced ? '✓ Seimbang' : '✗ Tidak Seimbang'}`,
+                landscape: true,
             });
             toast.success('Data berhasil di-export ke PDF');
         }

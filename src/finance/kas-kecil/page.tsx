@@ -68,7 +68,7 @@ import { useKasKecilSaldo } from '@/hooks/useKasKecilSaldo';
 import { useAccountingPeriods, useCreatePeriod, useGenerateNextNumber } from '@/hooks/useAccountingPeriods';
 import { kasKecilFormSchema, type KasKecilFormValues } from './schema';
 import type { KasKecilTransaction, CreateKasKecilInput } from './types';
-import { exportToExcel, type ExcelColumn } from '@/lib/export';
+import { exportToExcel, exportToPDF, type ExcelColumn, type PDFColumn } from '@/lib/export';
 import { kasKecilPreviewConfig } from './preview-config';
 import { useFinanceValidation, type ValidationLine } from '@/lib/finance-validation';
 import { ScanStrukButton, type ScanStrukResult } from '@/finance/components/ScanStrukButton';
@@ -397,7 +397,48 @@ export default function KasKecilPage() {
               className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22] h-12 px-6 rounded-xl"
             >
               <FileText className="w-4 h-4 mr-1" />
-              Export Excel
+              Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (transactions.length === 0) {
+                  toast.error('Tidak ada data untuk di-export');
+                  return;
+                }
+                const monthName = MONTHS[month - 1];
+                const filename = `Kas-Kecil-${monthName}-${year}`;
+                const exportData = transactions.map(tx => ({
+                  noTransaksi: tx.transNumber,
+                  tanggal: tx.date,
+                  keterangan: tx.description,
+                  akun: tx.accountName ? `${tx.accountNumber || ''} - ${tx.accountName}` : '—',
+                  debit: Number(tx.debit) > 0 ? formatRp(tx.debit) : '—',
+                  kredit: Number(tx.credit) > 0 ? formatRp(tx.credit) : '—',
+                  saldoBerjalan: formatRp(tx.runningBalance),
+                }));
+                const columns: PDFColumn[] = [
+                  { header: 'No. Transaksi', key: 'noTransaksi', width: 25 },
+                  { header: 'Tanggal', key: 'tanggal', width: 22 },
+                  { header: 'Keterangan', key: 'keterangan' },
+                  { header: 'Akun', key: 'akun', width: 35 },
+                  { header: 'Debit', key: 'debit', width: 28 },
+                  { header: 'Kredit', key: 'kredit', width: 28 },
+                  { header: 'Saldo', key: 'saldoBerjalan', width: 28 },
+                ];
+                await exportToPDF(exportData, columns, {
+                  filename,
+                  title: 'BUKU KAS KECIL',
+                  subtitle: `Periode: ${monthName} ${year}`,
+                  landscape: true,
+                });
+                toast.success('Data berhasil di-export ke PDF');
+              }}
+              disabled={isLoading || transactions.length === 0}
+              className="border-[#1E1E22] text-[#F0F0F0] hover:bg-[#1E1E22] h-12 px-6 rounded-xl"
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              PDF
             </Button>
             <Button
               onClick={openCreate}
